@@ -142,3 +142,71 @@ If the line is not detected, the robot rotates to find it again.
 HAL.setV(2)
 HAL.setW(2)
 ```
+
+## 🖼️ Results
+
+The following images show the performance of the robot while following the red line in different stages of the track.
+
+---
+
+### 🚀 Initial Alignment
+
+<p align="center">
+  <img src="img_start.png" width="500"/>
+</p>
+
+At the beginning, the robot detects the red line and aligns itself with the center of the path.
+
+---
+
+### 📏 Straight Line Tracking
+
+<p align="center">
+  <img src="img_straight.png" width="500"/>
+</p>
+
+The robot maintains a stable trajectory when the path is straight, with minimal error and higher speed.
+
+---
+
+### 🔄 Curve Navigation
+
+<p align="center">
+  <img src="img_curve1.png" width="400"/>
+  <img src="img_curve2.png" width="400"/>
+</p>
+
+During curves, the robot adjusts its orientation using the PD controller.  
+The speed is reduced automatically to maintain stability.
+
+---
+
+### 🧭 Advanced Turns
+
+<p align="center">
+  <img src="img_curve3.png" width="400"/>
+  <img src="img_curve4.png" width="400"/>
+</p>
+
+The system successfully handles sharper turns, showing smooth corrections and no oscillations.
+
+---
+
+### 🏁 Final Stage
+
+<p align="center">
+  <img src="img_end.png" width="500"/>
+</p>
+
+At the end of the track, the robot remains stable and completes the trajectory successfully.
+
+---
+
+## 📊 Performance Summary
+
+- ✔ Stable tracking on straight segments  
+- ✔ Smooth behavior on curves  
+- ✔ Adaptive speed control improves stability  
+- ✔ No major loss of the line observed  
+
+The robot demonstrates robust performance under different path conditions.
