@@ -18,7 +18,7 @@ Control system (PD) for line following using computer vision.
 ### 🔹 [Practice 2: 3D Reconstruction](P2_3DReconstruction.md)
 3D scene reconstruction using epipolar geometry and triangulation.
 
-### 🔹 Practice 3: Visual Localization
+### 🔹 [Practice 3: Visual Localization](P3_VisualLocalization.md)
 Robot localization using markers (AprilTags) and transformations.
 
 ---
