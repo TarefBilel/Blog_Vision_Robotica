@@ -12,7 +12,7 @@ Each practice includes:
 
 ## 📚 Practices
 
-### 🔹 Practice 1: Visual Follow Line
+### 🔹 [Practice 1: Visual Follow Line](P1_FollowLine.md)
 Control system (PD) for line following using computer vision.
 
 ### 🔹 Practice 2: 3D Reconstruction
