@@ -15,7 +15,7 @@ Each practice includes:
 ### 🔹 [Practice 1: Visual Follow Line](P1_FollowLine.md)
 Control system (PD) for line following using computer vision.
 
-### 🔹 Practice 2: 3D Reconstruction
+### 🔹 [Practice 2: 3D Reconstruction](P2_3DReconstruction.md)
 3D scene reconstruction using epipolar geometry and triangulation.
 
 ### 🔹 Practice 3: Visual Localization
