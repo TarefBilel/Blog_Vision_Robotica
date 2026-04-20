@@ -1,1 +1,35 @@
-# Blog_Vision_Robotica
+# 🤖 Blog Vision Robótica
+
+## 📌 Description
+This repository contains practical work and projects related to **Computer Vision and Robotics**.
+
+Each practice includes:
+- Algorithm explanation
+- Control logic
+- Results
+
+---
+
+## 📚 Practices
+
+### 🔹 Practice 1: Visual Follow Line
+Control system (PD) for line following using computer vision.
+
+### 🔹 Practice 2: 3D Reconstruction
+3D scene reconstruction using epipolar geometry and triangulation.
+
+### 🔹 Practice 3: Visual Localization
+Robot localization using markers (AprilTags) and transformations.
+
+---
+
+## 🛠️ Technologies
+- Python
+- OpenCV
+- Computer Vision
+- Robotics
+
+---
+
+## 👨‍💻 Author
+**Taref Bilel**
