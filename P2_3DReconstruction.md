@@ -134,42 +134,49 @@ Each point keeps its original color from the image.
 
 ---
 
-## 🖼️ Results
+### 🖼️ Results
 
-The following images illustrate the different stages of the reconstruction process.
+The following images show the different stages of the 3D reconstruction process.
 
 ---
 
 ### 🧩 Edge Detection
 
 <p align="center">
-  <img src="./images/p2/edges_left.png" width="400"/>
-  <img src="./images/p2/edges_right.png" width="400"/>
+  <img src="img_p2_edges.png" width="500"/>
 </p>
 
-Edges extracted from both images highlight the structure of the scene.
+Edges highlight the structure of the scene and allow feature extraction.
 
 ---
 
 ### 🔗 Feature Matching
 
 <p align="center">
-  <img src="./images/p2/matching.png" width="500"/>
+  <img src="img_p2_matching.png" width="500"/>
 </p>
 
-Correspondences are established between both images using patch similarity.
+Correspondences between left and right images are computed using patch correlation.
 
 ---
 
-### 🌐 3D Reconstruction
+### 🌐 Raw 3D Reconstruction
 
 <p align="center">
-  <img src="./images/p2/result.png" width="500"/>
+  <img src="img_p2_raw.png" width="500"/>
 </p>
 
-The system generates a 3D point cloud representing the scene geometry.
+The initial point cloud contains noise due to incorrect matches.
 
 ---
+
+### ✅ Final 3D Reconstruction
+
+<p align="center">
+  <img src="img_p2_final.png" width="500"/>
+</p>
+
+After filtering and scaling, the point cloud better represents the scene structure.
 
 ## 📊 Performance Summary
 
@@ -186,22 +193,7 @@ However:
 
 ---
 
-## ⚠️ Limitations
 
-* Sensitive to noise in edge detection
-* Matching errors in repetitive textures
-* No reprojection error filtering
-* Limited robustness compared to descriptor-based methods
-
----
-
-## 🚀 Possible Improvements
-
-* Use feature descriptors (ORB, SIFT) instead of raw patches
-* Apply stricter epipolar constraints
-* Add reprojection error filtering
-* Use dense stereo algorithms (StereoBM, SGBM)
-* Improve camera calibration
 
 ---
 
