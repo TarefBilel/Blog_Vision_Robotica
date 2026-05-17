@@ -22,7 +22,7 @@ Control system (PD) for line following using computer vision.
 Robot localization using markers (AprilTags) and transformations.
 
 ### 🔹 [Practice 4: End-to-End Visual Control using Deep Learning](P4_EndToEnd.md)
-Robot localization using markers (AprilTags) and transformations.
+autonomous driving system using Deep Learning
 
 ---
 
