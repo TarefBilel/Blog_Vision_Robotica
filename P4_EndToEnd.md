@@ -462,37 +462,37 @@ The model successfully learned:
 
 ## Original Image
 
-![Original](images/img1_P4.png)
+![Original](img1_P4.png)
 
 ---
 
 ## Cropped Image
 
-![Cropped](images/img2_P4.png)
+![Cropped](img2_P4.png)
 
 ---
 
 ## Resized Image
 
-![Resized](images/img3_P4.png)
+![Resized](img3_P4.png)
 
 ---
 
 ## Normalized / Processed Image
 
-![Processed](images/img4_P4.png)
+![Processed](img4_P4.png)
 
 ---
 
 ## Brightness Augmentation
 
-![Augmentation](images/img5_P4.png)
+![Augmentation](img5_P4.png)
 
 ---
 
 ## Tensor and Batch Visualization
 
-![Tensor](images/img6_P4.png)
+![Tensor](img6_P4.png)
 
 # 14. Export to ONNX
 
@@ -601,25 +601,25 @@ The model achieved:
 
 ## Real vs Predicted V
 
-![V Graph](images/imgR1_P4.png)
+![V Graph](imgR1_P4.png)
 
 ---
 
 ## Real vs Predicted W
 
-![W Graph](images/imgR2_P4.png)
+![W Graph](imgR2_P4.png)
 
 ---
 
 ## ONNX Model Running in Unibotics
 
-![Unibotics](images/imgR3_P4.png)
+![Unibotics](imgR3_P4.png)
 
 ---
 
 ## Autonomous Driving Result
 
-![Driving](images/imgR4_P4.png)
+![Driving](imgR4_P4.png)
 
 # Technologies Used
 
