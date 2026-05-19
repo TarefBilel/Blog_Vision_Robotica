@@ -259,13 +259,7 @@ Although the reconstruction is not perfectly dense, it is:
 
 ---
 
-# 📂 Main File
 
-Implementation file:
-
-- `code.py`
-
----
 
 # 🏁 Conclusion
 
