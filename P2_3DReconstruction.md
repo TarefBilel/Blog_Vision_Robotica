@@ -8,200 +8,278 @@
 **Master en Visión Artificial**
 **Asignatura:** Visión Robótica
 
----
+## 📌 Overview
 
-## 📘 Introduction
+This project implements a real-time **3D reconstruction system** using **stereo vision** in the RoboticsAcademy / Unibotics environment.
 
-Understanding the 3D structure of the environment is a key capability in robotics and computer vision.
-Stereo vision allows us to estimate depth by using two images captured from different viewpoints.
+The objective is to reconstruct a **3D point cloud** from two stereo camera images using:
 
-In this practice, we implement a **3D reconstruction pipeline** based on stereo vision. The system detects features, matches them between two images, and computes their 3D position using triangulation.
+- 🖼️ Edge detection
+- 🔍 Stereo matching
+- 📏 Epipolar constraints
+- 📐 Triangulation
+- 🌐 3D visualization
 
-This type of approach is widely used in:
-
-* Autonomous driving
-* Robot navigation
-* 3D mapping
-* Augmented reality
+The implementation follows the theory of **Stereo Reconstruction** and **Epipolar Geometry** explained in the RoboticsAcademy guide.
 
 ---
 
-## 🎯 Objective
+# 🧠 Reconstruction Pipeline
 
-The objective of this practice is to design and implement a system that:
-
-* Detects relevant features from stereo images
-* Matches corresponding points between left and right views
-* Computes their 3D coordinates using triangulation
-* Visualizes the reconstructed scene as a point cloud
+The system is divided into several stages:
 
 ---
 
-## ⚙️ Methodology
+## 1️⃣ Image Acquisition
 
-### 1. Image Acquisition
-
-The system continuously captures images from two cameras:
+The stereo images are retrieved from the simulator using the HAL API.
 
 ```python
-imgL = HAL.getImage('left')
-imgR = HAL.getImage('right')
+imgL = HAL.getImage("left")
+imgR = HAL.getImage("right")
 ```
-
-These images represent the same scene from different perspectives.
 
 ---
 
-### 2. Preprocessing and Edge Detection
+## 2️⃣ Image Preprocessing
 
-Each image is converted to grayscale and smoothed with a Gaussian filter.
-Then, edge detection is applied using the Canny algorithm.
+Each image goes through several preprocessing steps:
+
+- Convert to grayscale
+- Bilateral filtering
+- Canny edge detection
+- Edge dilation
 
 ```python
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-edges = cv2.Canny(blur, 30, 100)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+blur = cv2.bilateralFilter(gray, 7, 50, 50)
+edges = cv2.Canny(blur, 40, 120)
+edges = cv2.dilate(edges, np.ones((2, 2), np.uint8), iterations=1)
 ```
 
-This step extracts structural features of the scene.
+### ✅ Why preprocessing?
+
+This improves edge quality while reducing noise and unstable matches.
 
 ---
 
-### 3. Feature Detection
+## 3️⃣ Feature Detection
 
-Feature points are selected from edge pixels using a regular sampling strategy.
+Instead of using SIFT or ORB, edge pixels are used as feature points.
 
 ```python
 if edges[y, x] > 0:
     pts.append((x, y))
 ```
 
-Only edge points are used, reducing noise and improving relevance.
+### ✅ Why edges?
+
+Because 3D reconstruction requires a large amount of points.
+
+Edges provide:
+- More features
+- Better scene coverage
+- Faster extraction
 
 ---
 
-### 4. Stereo Matching
+## 4️⃣ Stereo Matching
 
-For each feature point in the left image:
+For every point in the left image:
 
-* A patch is extracted around the point
-* A search is performed in the right image along nearby rows
-* Candidate points are evaluated using normalized cross-correlation
+- A patch is extracted
+- Search is restricted to the epipolar line
+- Only left disparities are considered
+- Correlation matching is applied
 
 ```python
-score = cv2.matchTemplate(patchR, patchL, cv2.TM_CCOEFF_NORMED)
+cv2.matchTemplate(
+    patchR.astype(np.float32),
+    patchL.astype(np.float32),
+    cv2.TM_CCOEFF_NORMED
+)
 ```
-
-To improve reliability:
-
-* A minimum score threshold is applied
-* Ambiguous matches are rejected
-* Only valid disparities are accepted
 
 ---
 
-### 5. Triangulation
+## 🔒 Matching Constraints
 
-Once corresponding points are found, their 3D coordinates are computed using stereo projection matrices:
+Several filters were added to reduce false matches:
+
+### ✅ Minimum score threshold
 
 ```python
-X = cv2.triangulatePoints(self.P_left, self.P_right, ptsL, ptsR)
+self.min_score = 0.50
 ```
 
-This converts 2D pixel correspondences into 3D points.
+Rejects weak correlations.
 
 ---
 
-### 6. Point Cloud Processing
-
-The resulting 3D points are refined:
-
-* Outliers are removed using percentile filtering
-* The point cloud is centered
-* Scaling is applied for better visualization
-* Coordinates are adjusted to match the viewer
-
----
-
-### 7. Visualization
-
-The final 3D points are displayed using the simulation interface:
+### ✅ Ambiguity rejection
 
 ```python
-WebGUI.ShowAllPoints(points)
+if second_best > 0 and (best_score - second_best) < self.ambiguity_margin:
+    return None
 ```
 
-Each point keeps its original color from the image.
+Rejects unstable correspondences.
 
 ---
 
-### 🖼️ Results
+### ✅ Epipolar constraint
 
-The following images show the different stages of the 3D reconstruction process.
+```python
+self.row_tolerance = 0
+```
 
----
+The matching only searches on the same row.
 
-### 🧩 Edge Detection
-
-<p align="center">
-  <img src="img_p2_edges.png" width="500"/>
-</p>
-
-Edges highlight the structure of the scene and allow feature extraction.
+This dramatically improves stability.
 
 ---
 
-### 🔗 Feature Matching
+### ✅ Disparity limits
 
-<p align="center">
-  <img src="img_p2_matching.png" width="500"/>
-</p>
+```python
+self.min_disparity = 2
+self.max_disparity = 120
+```
 
-Correspondences between left and right images are computed using patch correlation.
-
----
-
-### 🌐 Raw 3D Reconstruction
-
-<p align="center">
-  <img src="img_p2_raw.png" width="500"/>
-</p>
-
-The initial point cloud contains noise due to incorrect matches.
+Prevents impossible correspondences.
 
 ---
 
-### ✅ Final 3D Reconstruction
+# 📐 5️⃣ Triangulation
 
-<p align="center">
-  <img src="img_p2_final.png" width="500"/>
-</p>
+The system reconstructs 3D points using the HAL geometric functions:
 
-After filtering and scaling, the point cloud better represents the scene structure.
+```python
+HAL.graficToOptical()
+HAL.backproject()
+HAL.getCameraPosition()
+```
 
-## 📊 Performance Summary
-
-* ✔ Effective edge-based feature detection
-* ✔ Successful stereo matching using correlation
-* ✔ Generation of a 3D point cloud
-* ✔ Real-time visualization
-
-However:
-
-* ⚠ Some incorrect matches introduce noise
-* ⚠ Reconstruction remains sparse
-* ⚠ Accuracy depends on edge quality
+The rays generated from both cameras are intersected geometrically.
 
 ---
 
+## 🧮 Geometric Validation
 
+Bad triangulations are rejected:
+
+```python
+if distance > self.max_ray_distance:
+    return None
+```
+
+This removes floating outliers.
 
 ---
 
-## ✅ Conclusion
+## 📍 Final 3D Point
 
-This practice demonstrates the complete pipeline of stereo 3D reconstruction.
+The final reconstructed point is computed as the midpoint between both rays.
 
-From raw images, the system detects features, matches them, and reconstructs a 3D representation of the scene.
+---
+
+# 🌐 6️⃣ 3D Visualization
+
+The reconstructed cloud is visualized using WebGUI.
+
+```python
+WebGUI.ShowAllPoints(points3D)
+```
+
+Each point contains:
+
+```python
+[x, y, z, r, g, b]
+```
+
+---
+
+# ⚙️ Final Parameters
+
+The final configuration used was:
+
+```python
+self.feature_step = 3
+self.patch_size = 9
+self.max_points = 900
+
+self.min_score = 0.50
+self.ambiguity_margin = 0.10
+
+self.min_disparity = 2
+self.max_disparity = 120
+self.row_tolerance = 0
+
+self.max_ray_distance = 15.0
+```
+
+These parameters provided the best balance between:
+
+- ✅ Reconstruction quality
+- ✅ Number of points
+- ✅ Noise reduction
+- ✅ Stability
+
+---
+
+# 📊 Results
+
+The final reconstruction successfully generates a recognizable 3D point cloud.
+
+Objects visible in the reconstruction:
+
+- 🦆 Duck
+- 🍄 Mario characters
+- 🧱 Blocks
+- 🏗️ Scene structure
+- 🌌 Scene depth
+
+Although the reconstruction is not perfectly dense, it is:
+
+- Geometrically coherent
+- Stable
+- Recognizable
+- Real-time capable
+
+---
+
+# 🚀 Technologies Used
+
+- Python 🐍
+- OpenCV 👁️
+- NumPy 🔢
+- HAL API 🤖
+- WebGUI 🌐
+- RoboticsAcademy / Unibotics 🎓
+
+---
+
+# 📂 Main File
+
+Implementation file:
+
+- `code.py`
+
+---
+
+# 🏁 Conclusion
+
+This project demonstrates a complete **software-based stereo reconstruction pipeline** using:
+
+- Edge extraction
+- Stereo correspondence
+- Epipolar geometry
+- Triangulation
+- Real-time visualization
+
+The system successfully reconstructs a coherent 3D representation of the environment from stereo images in real time.
+
+---
 
 Although the reconstruction is not perfect, it successfully captures the spatial structure and provides a solid foundation for more advanced computer vision techniques.
 
