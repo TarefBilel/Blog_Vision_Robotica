@@ -241,13 +241,74 @@ Objects visible in the reconstruction:
 
 Although the reconstruction is not perfectly dense, it is:
 
-- Geometrically coherent
-- Stable
-- Recognizable
-- Real-time capable
+- ✅ Geometrically coherent
+- ✅ Stable
+- ✅ Recognizable
+- ✅ Real-time capable
 
 ---
 
+## 🖼️ Reconstruction Examples
+
+### 🔹 Reconstruction Result 1
+
+The first result shows a dense reconstruction with many detected correspondences and a large number of reconstructed points.
+
+![Reconstruction Result 1](img1_P2.png)
+
+---
+
+### 🔹 Reconstruction Result 2
+
+This configuration improves the geometric stability of the cloud and reduces some incorrect stereo matches.
+
+![Reconstruction Result 2](img2_P2.png)
+
+---
+
+### 🔹 Reconstruction Result 3
+
+The final tuned configuration provides a cleaner reconstruction with better epipolar consistency and more stable triangulation.
+
+![Reconstruction Result 3](img3_P2.png)
+
+---
+
+## 📌 Observations
+
+Several important observations were made during experimentation:
+
+- Restricting matching to the same epipolar row greatly improved stability.
+- Ambiguity filtering removed many false correspondences.
+- Ray-distance validation reduced floating outliers in 3D space.
+- Increasing the number of points improved scene density but also increased noise.
+- Proper parameter tuning was critical for balancing density and stability.
+
+---
+
+## ⚙️ Best Final Configuration
+
+```python
+self.feature_step = 3
+self.patch_size = 9
+self.max_points = 900
+
+self.min_score = 0.50
+self.ambiguity_margin = 0.10
+
+self.min_disparity = 2
+self.max_disparity = 120
+self.row_tolerance = 0
+
+self.max_ray_distance = 15.0
+```
+
+This configuration produced the best balance between:
+
+- ✅ Reconstruction quality
+- ✅ Number of points
+- ✅ Noise reduction
+- ✅ Stability
 # 🚀 Technologies Used
 
 - Python 🐍
