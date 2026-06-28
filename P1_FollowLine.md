@@ -446,3 +446,11 @@ En resumen, lo que hice fue crear un ciclo muy simple:
 **mirar → detectar → calcular error → corregir → avanzar**
 
 Y este ciclo se repite todo el tiempo mientras el robot sigue la línea.
+
+## 🎥 Video de demostración
+
+En este video se puede ver el robot siguiendo la línea roja en el simulador.
+
+<p align="center">
+  <video src="P1_Video.webm" controls width="700"></video>
+</p>
