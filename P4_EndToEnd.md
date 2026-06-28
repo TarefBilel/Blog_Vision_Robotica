@@ -1,653 +1,1023 @@
-# End-to-End Visual Control using Deep Learning
+Sí bro, ahora lo cambio como quieres: **sin códigos complejos**, sin arquitectura larga, y con una explicación muy detallada, simple, en primera persona, como si tú estuvieras explicando paso a paso lo que hiciste. Uso como base el README que subiste. 
 
-## Introduction
-
-This project implements an autonomous driving system using Deep Learning for the RoboticsAcademy / Unibotics platform.  
-The objective is to train a neural network capable of predicting the robot control commands directly from camera images without using classical computer vision or PID controllers during inference.
-
-The model learns the relationship between:
-- Input: front camera image
-- Output:
-  - Linear velocity `v`
-  - Angular velocity `w`
-
-The project was developed using:
-- Python
-- PyTorch
-- OpenCV
-- ONNX
-- Unibotics / RoboticsAcademy
+# 🚗 Práctica: Control visual End-to-End usando Deep Learning
 
 ---
 
-# Objective
+## 👨‍💻 Autor
 
-The goal of this project is to create an End-to-End autonomous driving system capable of following a racing circuit using only visual information from the front camera.
-
-Unlike classical approaches based on:
-- color segmentation
-- centroid extraction
-- PID control
-
-this system uses a deep neural network that directly predicts the vehicle commands from raw images.
-
-The final trained model is exported to ONNX format and integrated into the RoboticsAcademy simulator for real-time inference.
+**Taref Bilel**
+**Máster en Visión Artificial**
+**Asignatura:** Visión Robótica
 
 ---
 
-# Dataset
+## 📘 Introducción
 
-Two datasets are provided in the practice.
+En esta práctica he trabajado con un sistema de conducción autónoma usando Deep Learning dentro de la plataforma RoboticsAcademy / Unibotics.
 
-## Simple Circuit Dataset
+La idea principal de la práctica fue hacer que el robot pudiera conducir usando solamente la imagen de su cámara frontal.
 
-The dataset is divided into:
-- `train_images_part_01` → `train_images_part_07`
-- `train.csv`
-- `test_images`
-- `test.csv`
+En otras prácticas, normalmente el robot sigue una línea usando visión clásica. Por ejemplo, se detecta un color, se calcula el centro de la línea y después se usa un controlador para girar. Pero en esta práctica hice algo diferente.
 
-The CSV files contain:
-- image path
-- linear velocity `v`
-- angular velocity `w`
+En vez de decirle al robot paso por paso qué tiene que buscar, yo entrené una red neuronal para que aprendiera a conducir a partir de ejemplos.
 
----
+Es decir, yo le enseñé al modelo muchas imágenes del circuito. Para cada imagen, el modelo también tenía la respuesta correcta, que eran dos valores:
 
-## Combine Circuit Dataset
+* La velocidad lineal `v`, que indica cuánto avanza el robot.
+* La velocidad angular `w`, que indica cuánto gira el robot.
 
-The dataset contains:
-- `images_part_01` → `images_part_10`
-- `label.csv`
+Entonces, el objetivo fue que la red aprendiera esta idea:
 
-Additional adjustment data may also be provided for sharp turns.
+**cuando ve una imagen parecida, debe saber qué velocidad y qué giro usar.**
 
-The dataset includes:
-- camera images
-- linear velocity commands
-- angular velocity commands
+De forma sencilla, el robot hace esto todo el tiempo:
 
-Dataset size used:
-- **50,000 images**
+1. Mira con la cámara.
+2. La imagen entra en el modelo.
+3. El modelo predice la velocidad y el giro.
+4. El robot se mueve con esos valores.
+5. El proceso se repite muchas veces por segundo.
+
+Esto se llama control visual End-to-End porque el sistema va directamente desde la imagen hasta el control del robot.
 
 ---
 
-# Project Pipeline
+## 🎯 Objetivo
 
-```text
-Dataset
-   ↓
-Preprocessing
-   ↓
-Data Augmentation
-   ↓
-PyTorch Dataset & DataLoader
-   ↓
-PilotNet CNN
-   ↓
-Training
-   ↓
-Validation
-   ↓
-Export to ONNX
-   ↓
-Real-Time Inference in Unibotics
-```
+El objetivo principal de esta práctica fue crear un sistema de conducción autónoma usando Deep Learning.
+
+Yo quería conseguir que el robot pudiera seguir un circuito usando solamente la cámara frontal, sin usar durante la inferencia un sistema clásico basado en detectar colores, calcular centroides o aplicar un controlador PID.
+
+Para conseguirlo, yo hice varias partes:
+
+* Primero, cargué un dataset con imágenes del circuito.
+* Después, leí las etiquetas del dataset, donde aparecen los valores reales de velocidad `v` y giro `w`.
+* Luego, preparé las imágenes para que fueran más fáciles de usar por la red neuronal.
+* Después, creé el sistema de datos en PyTorch.
+* Luego, entrené una red neuronal para que aprendiera a predecir `v` y `w`.
+* Después, comprobé si las predicciones eran razonables.
+* Luego, guardé el modelo entrenado.
+* Después, convertí el modelo a formato ONNX.
+* Finalmente, usé ese modelo dentro de Unibotics para controlar el robot en tiempo real.
+
+Mi objetivo no era solamente entrenar una red, sino conseguir que esa red funcionara realmente dentro del simulador.
 
 ---
 
-# Methodology
+## 🧠 Idea principal de la práctica
 
-# 1. Dataset Loading
+La idea principal es que el robot aprende mirando ejemplos.
 
-The labels are loaded using Pandas from the CSV file.
+Para entenderlo de forma sencilla, es como cuando una persona aprende a conducir viendo muchas situaciones diferentes.
 
-```python
-import pandas as pd
+Por ejemplo:
 
-df = pd.read_csv("label.csv")
+* Si la carretera está recta, la persona aprende que debe seguir recto.
+* Si hay una curva a la derecha, aprende que debe girar a la derecha.
+* Si hay una curva fuerte, aprende que debe girar más.
+* Si la carretera está clara, puede avanzar con más velocidad.
+* Si la situación es complicada, debe tener más cuidado.
 
-print(df.head())
-```
+En esta práctica hice algo parecido, pero con una red neuronal.
 
-Each row contains:
-- image path
-- linear velocity
-- angular velocity
+Yo le di al modelo muchas imágenes. Cada imagen tenía asociada una acción correcta. Esa acción era la velocidad lineal y la velocidad angular.
 
-Example:
+Entonces, durante el entrenamiento, el modelo intentaba aprender la relación entre lo que se ve en la imagen y lo que debe hacer el robot.
 
-| image | v | w |
-|---|---|---|
-| image_1.png | 4.0 | -0.74 |
+La diferencia con una solución clásica es importante.
 
----
+En una solución clásica, yo tendría que escribir reglas manualmente. Por ejemplo:
 
-# 2. Image Preprocessing
+* Si la línea está a la izquierda, gira a la izquierda.
+* Si la línea está a la derecha, gira a la derecha.
+* Si la línea está en el centro, sigue recto.
 
-Before training, all images are preprocessed to ensure consistency and improve learning stability.
-
-The preprocessing pipeline includes:
-
-## a) Cropping
-
-The upper part of the image (mainly sky and irrelevant background) is removed.
-
-```python
-cropped = image[200:, :, :]
-```
-
-This allows the network to focus only on:
-- the road
-- the red line
-- the driving area
-
-while removing:
-- sky
-- horizon
-- irrelevant background
+Pero en esta práctica, yo no escribí esas reglas directamente. En vez de eso, entrené una red para que aprendiera esas decisiones usando datos.
 
 ---
 
-## b) Resizing
+# 📂 Dataset utilizado
 
-Images are resized to:
+Para entrenar el modelo, usé un dataset con imágenes del circuito y comandos del robot.
 
-```python
-(200, 66)
-```
+Cada ejemplo del dataset tiene dos partes:
 
-This resolution is inspired by NVIDIA PilotNet architecture.
+1. Una imagen de la cámara frontal.
+2. Los valores correctos de control para esa imagen.
 
-```python
-resized = cv2.resize(cropped, (200, 66))
-```
+Los valores de control son:
 
-Resizing reduces:
-- memory usage
-- training time
-- computational complexity
+* `v`: velocidad lineal.
+* `w`: velocidad angular.
 
-while preserving important driving features.
+La velocidad lineal indica si el robot avanza más rápido o más lento.
 
----
+La velocidad angular indica si el robot gira, y hacia dónde gira.
 
-## c) Normalization
-
-Pixel values are normalized to the range:
-
-```python
-[0, 1]
-```
-
-```python
-img = img.astype(np.float32) / 255.0
-```
-
-Normalization improves:
-- training stability
-- convergence speed
-- gradient behavior
+Por ejemplo, si el valor de `w` es pequeño, el robot casi sigue recto.
+Si el valor de `w` es grande, el robot gira más fuerte.
 
 ---
 
-# 3. Data Augmentation
+## Dataset del circuito simple
 
-To improve generalization and robustness, data augmentation techniques are applied.
+En la práctica había un dataset del circuito simple.
 
-## Brightness Augmentation
+Este dataset estaba dividido en varias carpetas con imágenes de entrenamiento y también tenía archivos CSV.
 
-Random brightness variation is used to simulate different lighting conditions.
+Los archivos CSV son muy importantes porque conectan cada imagen con sus valores reales de `v` y `w`.
 
-```python
-factor = 0.5 + np.random.uniform()
-```
+Es decir, el CSV le dice al programa:
 
-This helps the model become more robust against:
-- shadows
-- illumination changes
-- reflections
+**para esta imagen, la respuesta correcta es esta velocidad y este giro.**
+
+Yo usé esta información para entrenar el modelo.
 
 ---
 
-# 4. Full Preprocessing Function
+## Dataset combinado
 
-A complete preprocessing function was implemented.
+También trabajé con el dataset combinado.
 
-```python
-def preprocess_image(img):
+Este dataset tiene más imágenes y más variedad. Esto es importante porque, cuando una red neuronal ve más ejemplos, normalmente puede aprender mejor.
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+En mi caso, usé aproximadamente:
 
-    img = img[200:, :, :]
+**50.000 imágenes**
 
-    img = cv2.resize(img, (200, 66))
+Esto es bastante útil porque el modelo necesita ver muchas situaciones diferentes del circuito.
 
-    img = img.astype(np.float32) / 255.0
+Por ejemplo, el dataset puede contener:
 
-    return img
-```
+* Imágenes en rectas.
+* Imágenes en curvas suaves.
+* Imágenes en curvas más cerradas.
+* Imágenes con diferentes posiciones del coche dentro del circuito.
+* Imágenes donde el robot debe avanzar rápido.
+* Imágenes donde el robot debe girar más.
 
-This preprocessing pipeline is used both:
-- during training
-- during inference in Unibotics
-
-to ensure consistency.
-
----
-
-# 5. PyTorch Dataset Class
-
-A custom PyTorch Dataset class was implemented.
-
-The dataset:
-- loads images
-- preprocesses them
-- converts them into tensors
-- returns labels `(v, w)`
-
-```python
-class DrivingDataset(Dataset):
-
-    def __init__(self, dataframe, root_dir):
-
-        self.df = dataframe
-        self.root_dir = root_dir
-
-    def __len__(self):
-
-        return len(self.df)
-
-    def __getitem__(self, idx):
-
-        row = self.df.iloc[idx]
-
-        image_path = os.path.join(
-            self.root_dir,
-            row["image"]
-        )
-
-        img = cv2.imread(image_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        img = preprocess_image(img)
-
-        img = np.transpose(img, (2, 0, 1))
-
-        img = torch.tensor(img, dtype=torch.float32)
-
-        labels = torch.tensor(
-            [row["v"], row["w"]],
-            dtype=torch.float32
-        )
-
-        return img, labels
-```
+Cuanta más variedad tenga el dataset, más posibilidades tiene el modelo de aprender un comportamiento estable.
 
 ---
 
-# 6. Tensor Shapes
+# 🔁 Flujo general del proyecto
 
-Example tensor shapes:
+El trabajo que hice sigue este orden:
 
-```python
-torch.Size([3, 66, 200])
-torch.Size([2])
-```
+1. Primero preparé el dataset.
+2. Después preprocesé las imágenes.
+3. Luego apliqué Data Augmentation.
+4. Después preparé los datos para PyTorch.
+5. Luego entrené el modelo.
+6. Después validé el modelo.
+7. Luego guardé el mejor modelo.
+8. Después exporté el modelo a ONNX.
+9. Finalmente integré el modelo en Unibotics.
 
-Meaning:
-- 3 channels (RGB)
-- 66 height
-- 200 width
+De forma sencilla, el flujo completo fue:
 
-The labels contain:
-- linear velocity `v`
-- angular velocity `w`
-
----
-
-# 7. DataLoader
-
-Batch loading was implemented using DataLoader.
-
-```python
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=64,
-    shuffle=True
-)
-```
-
-Example batch shapes:
-
-```python
-torch.Size([64, 3, 66, 200])
-torch.Size([64, 2])
-```
-
-Dataset split:
-- Training: 40,000 images
-- Validation: 10,000 images
+**datos → preparación → entrenamiento → modelo ONNX → robot conduciendo en Unibotics**
 
 ---
 
-# 8. Deep Learning Model
+# ⚙️ Metodología
 
-The architecture used is inspired by NVIDIA PilotNet.
-
-The model receives an RGB image and predicts:
-- linear velocity `v`
-- angular velocity `w`
-
-The network contains:
-- convolutional layers
-- ELU activations
-- fully connected layers
+En esta sección explico con mucho detalle todo lo que hice.
 
 ---
 
-# 9. PilotNet Architecture
+## 1. Carga de datos
 
-```python
-class PilotNet(nn.Module):
+Lo primero que hice fue cargar las etiquetas del dataset.
 
-    def __init__(self):
-        super(PilotNet, self).__init__()
+Las etiquetas estaban guardadas en un archivo CSV.
 
-        self.conv_layers = nn.Sequential(
+Ese archivo tenía la información de cada imagen y los valores de control asociados.
 
-            nn.Conv2d(3, 24, kernel_size=5, stride=2),
-            nn.ELU(),
+Cada fila del CSV representa un ejemplo.
 
-            nn.Conv2d(24, 36, kernel_size=5, stride=2),
-            nn.ELU(),
+Una fila contiene:
 
-            nn.Conv2d(36, 48, kernel_size=5, stride=2),
-            nn.ELU(),
+* El nombre o la ruta de la imagen.
+* La velocidad lineal `v`.
+* La velocidad angular `w`.
 
-            nn.Conv2d(48, 64, kernel_size=3),
-            nn.ELU(),
+Yo cargué este archivo para poder saber qué imagen correspondía a qué comando.
 
-            nn.Conv2d(64, 64, kernel_size=3),
-            nn.ELU()
-        )
+Esto es importante porque la red neuronal no aprende sola sin ejemplos. Necesita ver una entrada y una salida correcta.
 
-        self.fc_layers = nn.Sequential(
+En esta práctica:
 
-            nn.Flatten(),
+* La entrada es la imagen.
+* La salida correcta es `[v, w]`.
 
-            nn.Linear(1152, 100),
-            nn.ELU(),
-
-            nn.Linear(100, 50),
-            nn.ELU(),
-
-            nn.Linear(50, 10),
-            nn.ELU(),
-
-            nn.Linear(10, 2)
-        )
-
-    def forward(self, x):
-
-        x = self.conv_layers(x)
-
-        x = self.fc_layers(x)
-
-        return x
-```
-
-Final output:
-
-```python
-[v, w]
-```
+Entonces, yo preparé los datos para que el modelo pudiera aprender esta relación.
 
 ---
 
-# 10. Training Process
+## 2. Por qué fue necesario preprocesar las imágenes
 
-The model was trained using:
-- Mean Squared Error (MSE Loss)
-- Adam optimizer
+Antes de entrenar, no usé las imágenes directamente tal como venían.
 
-```python
-criterion = nn.MSELoss()
+Primero las preparé.
 
-optimizer = torch.optim.Adam(
-    model.parameters(),
-    lr=1e-4
-)
-```
+Esto se llama preprocesamiento.
 
----
+El preprocesamiento es muy importante porque ayuda a que la red neuronal aprenda mejor.
 
-# 11. Training Results
+Una imagen original puede tener mucha información que no sirve para conducir. Por ejemplo, puede aparecer el cielo, el horizonte o partes del entorno que no son útiles.
 
-Training results:
+Si dejo toda esa información, el modelo puede confundirse o perder tiempo aprendiendo cosas que no son importantes.
 
-```text
-Epoch [1/3] | Train Loss: 0.0553 | Val Loss: 0.0560
-Epoch [2/3] | Train Loss: 0.0507 | Val Loss: 0.0492
-Epoch [3/3] | Train Loss: 0.0471 | Val Loss: 0.0453
-```
+Por eso, yo limpié y preparé las imágenes antes de pasarlas al modelo.
 
-The best model was saved automatically:
+El preprocesamiento que hice tuvo tres pasos principales:
 
-```python
-torch.save(model.state_dict(), "pilotnet_best.pth")
-```
+1. Recortar la imagen.
+2. Cambiar el tamaño de la imagen.
+3. Normalizar los valores de los píxeles.
 
 ---
 
-# 12. Model Evaluation
+## 3. Recorte de la imagen
 
-The predictions were compared against the real commands.
+El primer paso que hice fue recortar la imagen.
 
-Example:
+Yo eliminé la parte superior de la imagen porque no era la parte más importante para conducir.
 
-```text
-REAL: [6.80 0.002]
-PRED: [6.74 -0.013]
-```
+La parte superior puede contener información como:
 
-The model successfully learned:
-- steering behavior
-- road following
-- velocity estimation
+* El cielo.
+* El fondo.
+* El horizonte.
+* Zonas lejanas.
+* Elementos que no ayudan mucho al control inmediato.
+
+Para conducir, la parte más útil es la parte inferior de la imagen, porque ahí está la carretera más cercana al robot.
+
+Es como cuando una persona conduce. No mira solamente el cielo; mira la carretera que tiene delante.
+
+Por eso, yo hice que el modelo se concentrara en la zona importante.
+
+Con este recorte, conseguí varias cosas:
+
+* Reducir información innecesaria.
+* Ayudar al modelo a centrarse en la carretera.
+* Hacer que el entrenamiento fuera más eficiente.
+* Evitar que la red aprendiera detalles que no son importantes.
+
+En resumen, recorté la imagen para que el modelo mirara principalmente la zona por donde tiene que conducir.
 
 ---
 
-# 13. Visualization
+## 4. Cambio de tamaño de la imagen
 
-## Distribution
+Después de recortar la imagen, cambié su tamaño.
+
+Todas las imágenes deben tener el mismo tamaño para poder entrar correctamente en la red neuronal.
+
+Yo redimensioné las imágenes a:
+
+**200 x 66 píxeles**
+
+Este tamaño es pequeño, pero suficiente para mantener la información importante de la carretera.
+
+Hice esto por varias razones:
+
+* Para que todas las imágenes tengan el mismo formato.
+* Para que el entrenamiento sea más rápido.
+* Para reducir el uso de memoria.
+* Para que el modelo no sea demasiado pesado.
+* Para que la inferencia en tiempo real sea más fácil.
+
+Si las imágenes fueran muy grandes, el modelo necesitaría más tiempo para procesarlas. Eso no es bueno para un robot, porque el robot necesita reaccionar rápido.
+
+Por eso, usar una imagen más pequeña ayuda a que el sistema pueda funcionar en tiempo real.
+
+---
+
+## 5. Normalización de la imagen
+
+Después de cambiar el tamaño, normalicé los valores de los píxeles.
+
+Normalmente, una imagen tiene valores entre 0 y 255.
+
+Pero para una red neuronal, es mejor trabajar con valores entre 0 y 1.
+
+Por eso dividí los valores de los píxeles entre 255.
+
+Esto hace que la red trabaje con números más pequeños y más estables.
+
+La normalización ayuda a:
+
+* Mejorar la estabilidad del entrenamiento.
+* Hacer que la red aprenda de forma más suave.
+* Evitar valores muy grandes.
+* Mejorar el comportamiento de los gradientes.
+
+De forma simple, normalizar es como poner todos los valores en una escala más cómoda para la red.
+
+---
+
+## 6. Conversión de formato de imagen
+
+También tuve que adaptar el formato de la imagen para PyTorch.
+
+Las imágenes normalmente se guardan con este orden:
+
+**alto, ancho, canales**
+
+Pero PyTorch trabaja con este orden:
+
+**canales, alto, ancho**
+
+Entonces, yo cambié el orden de las dimensiones.
+
+Esto es una parte técnica, pero importante. Si no hago este cambio, la red no interpreta la imagen correctamente.
+
+Por ejemplo, una imagen final queda con esta forma:
+
+**3 x 66 x 200**
+
+Esto significa:
+
+* 3 canales de color: rojo, verde y azul.
+* 66 píxeles de alto.
+* 200 píxeles de ancho.
+
+Así la imagen ya está preparada para entrar en el modelo.
+
+---
+
+# 🌞 Data Augmentation
+
+Después hice Data Augmentation.
+
+Data Augmentation significa crear pequeñas variaciones de las imágenes para que el modelo aprenda mejor.
+
+En mi caso, usé cambios de brillo.
+
+La idea es que el modelo no dependa siempre de una sola iluminación.
+
+Por ejemplo, en una imagen puede haber:
+
+* Más luz.
+* Menos luz.
+* Sombras.
+* Reflejos.
+* Zonas más oscuras.
+* Zonas más claras.
+
+Si el modelo solo aprende con imágenes siempre iguales, puede fallar cuando la iluminación cambia un poco.
+
+Por eso, yo cambié el brillo de algunas imágenes durante el entrenamiento.
+
+Esto ayuda a que el modelo sea más robusto.
+
+De forma sencilla, es como entrenar al robot para que no diga:
+
+**“solo sé conducir cuando la imagen tiene exactamente esta luz.”**
+
+Yo quería que el modelo pudiera conducir aunque la imagen fuera un poco más clara o un poco más oscura.
+
+---
+
+# 🧩 Preparación de los datos en PyTorch
+
+Después de preparar las imágenes, tuve que organizar los datos para entrenar el modelo en PyTorch.
+
+Para eso, creé una clase de dataset.
+
+Esta clase tenía una función muy importante: cada vez que el entrenamiento necesita un ejemplo, la clase hace esto:
+
+1. Busca la fila correspondiente en el CSV.
+2. Lee la ruta de la imagen.
+3. Carga la imagen.
+4. Preprocesa la imagen.
+5. Convierte la imagen en tensor.
+6. Lee los valores `v` y `w`.
+7. Devuelve la imagen y sus etiquetas.
+
+Esto permite que PyTorch pueda entrenar el modelo de forma ordenada.
+
+---
+
+## ¿Qué es un tensor?
+
+Un tensor es una forma de representar datos numéricos.
+
+Para explicarlo de forma simple, una imagen para el ordenador no es una foto como la vemos nosotros. Para el ordenador, una imagen es una tabla de números.
+
+Cada píxel tiene valores numéricos.
+
+Entonces, yo convertí la imagen a tensor para que la red neuronal pudiera trabajar con ella.
+
+La imagen entra como números, no como una foto normal.
+
+---
+
+## Etiquetas del modelo
+
+Las etiquetas son los valores que el modelo tiene que aprender a predecir.
+
+En esta práctica, cada etiqueta tiene dos números:
+
+* `v`
+* `w`
+
+Entonces, para cada imagen, el modelo intenta predecir estos dos valores.
+
+Durante el entrenamiento, compara su predicción con los valores reales.
+
+Si se equivoca mucho, la pérdida es grande.
+Si se equivoca poco, la pérdida es pequeña.
+
+Poco a poco, el modelo ajusta sus pesos para equivocarse menos.
+
+---
+
+# 📦 DataLoader
+
+Después usé DataLoader para cargar los datos por lotes.
+
+Un lote significa que el modelo no entrena con una sola imagen cada vez, sino con varias imágenes juntas.
+
+En mi caso, usé lotes de 64 imágenes.
+
+Esto significa que en cada paso de entrenamiento, el modelo ve 64 imágenes al mismo tiempo.
+
+Esto ayuda a que el entrenamiento sea más rápido y más estable.
+
+También mezclé los datos durante el entrenamiento. Esto es importante porque no quiero que el modelo vea siempre las imágenes en el mismo orden.
+
+Si siempre ve los datos en el mismo orden, puede aprender de forma menos general.
+
+Por eso, usar DataLoader con mezcla ayuda a entrenar mejor.
+
+---
+
+# ✂️ División entre entrenamiento y validación
+
+También dividí el dataset en dos partes:
+
+* Una parte para entrenamiento.
+* Una parte para validación.
+
+Usé aproximadamente:
+
+* 40.000 imágenes para entrenamiento.
+* 10.000 imágenes para validación.
+
+La parte de entrenamiento sirve para que el modelo aprenda.
+
+La parte de validación sirve para comprobar si el modelo funciona con imágenes que no está usando directamente para aprender.
+
+Esto es muy importante.
+
+Si solo miro el error de entrenamiento, no sé si el modelo está aprendiendo de verdad o si solo está memorizando.
+
+Pero si también baja el error de validación, significa que el modelo está aprendiendo patrones más generales.
+
+---
+
+# 🧠 Modelo usado
+
+Después preparé el modelo de Deep Learning.
+
+Usé una red neuronal convolucional inspirada en PilotNet.
+
+No voy a explicar aquí el código completo de la arquitectura porque lo importante es entender la idea.
+
+La red tiene dos partes principales:
+
+1. Una parte que mira la imagen y extrae información visual.
+2. Una parte que usa esa información para predecir `v` y `w`.
+
+---
+
+## Cómo entiende la imagen el modelo
+
+La red neuronal no entiende la imagen como una persona.
+
+Una persona mira la imagen y puede decir:
+
+“aquí hay una curva”
+“aquí la carretera sigue recta”
+“aquí tengo que girar”
+
+Pero la red trabaja con números.
+
+Lo que hace la red es aprender patrones visuales.
+
+Por ejemplo, puede aprender cosas como:
+
+* Bordes de la carretera.
+* Forma de la curva.
+* Posición del camino.
+* Dirección del circuito.
+* Cambios visuales que indican que hay que girar.
+
+Después, con esa información, el modelo predice los dos valores de salida.
+
+---
+
+## Salida del modelo
+
+La salida del modelo son dos números:
+
+* `v`
+* `w`
+
+La velocidad lineal `v` indica cuánto debe avanzar el robot.
+
+La velocidad angular `w` indica cuánto debe girar el robot.
+
+Por ejemplo:
+
+* Si `w` está cerca de cero, el robot sigue más o menos recto.
+* Si `w` es positivo o negativo, el robot gira.
+* Si `v` es mayor, el robot avanza más rápido.
+* Si `v` es menor, el robot avanza más despacio.
+
+Entonces, el modelo aprende a mirar una imagen y decir:
+
+**“con esta imagen, creo que el robot debe avanzar así y girar así.”**
+
+---
+
+# 🏋️ Entrenamiento del modelo
+
+Después entrené el modelo usando PyTorch.
+
+Entrenar significa repetir muchas veces este proceso:
+
+1. Le doy al modelo una imagen.
+2. El modelo predice `v` y `w`.
+3. Comparo la predicción con los valores reales.
+4. Calculo cuánto se ha equivocado.
+5. Ajusto el modelo para que la próxima vez se equivoque menos.
+
+Este proceso se repite muchas veces con muchas imágenes.
+
+Al principio, el modelo no sabe conducir. Sus predicciones no son muy buenas.
+
+Pero poco a poco, después de ver muchos ejemplos, empieza a aprender.
+
+---
+
+## Función de pérdida
+
+Para medir el error usé una función de pérdida.
+
+La función de pérdida mide la diferencia entre:
+
+* Lo que el modelo predice.
+* Lo que debería haber predicho.
+
+En esta práctica, la pérdida compara la velocidad real y la velocidad predicha, y también compara el giro real y el giro predicho.
+
+Si la diferencia es grande, la pérdida es grande.
+
+Si la diferencia es pequeña, la pérdida es pequeña.
+
+Entonces, el objetivo del entrenamiento es hacer que la pérdida baje.
+
+De forma simple:
+
+**la pérdida es como una nota que dice cuánto se ha equivocado el modelo.**
+
+---
+
+## Optimizador
+
+También usé un optimizador.
+
+El optimizador es la parte que cambia los pesos de la red para mejorar el resultado.
+
+Podemos imaginarlo como una persona que corrige al modelo después de cada error.
+
+El modelo predice algo, se calcula el error, y el optimizador ajusta un poco el modelo para que mejore.
+
+Yo usé Adam porque es un optimizador muy común en Deep Learning y suele funcionar bien.
+
+---
+
+# 📉 Resultados del entrenamiento
+
+Entrené el modelo durante 3 épocas.
+
+Una época significa que el modelo ve todo el dataset de entrenamiento una vez.
+
+Los resultados fueron:
+
+* En la época 1, la pérdida de entrenamiento fue 0.0553 y la pérdida de validación fue 0.0560.
+* En la época 2, la pérdida de entrenamiento bajó a 0.0507 y la pérdida de validación bajó a 0.0492.
+* En la época 3, la pérdida de entrenamiento bajó a 0.0471 y la pérdida de validación bajó a 0.0453.
+
+Esto fue una buena señal.
+
+La pérdida fue bajando poco a poco.
+
+Eso significa que el modelo aprendió mejor con cada época.
+
+También fue importante que la pérdida de validación bajara, porque eso significa que el modelo no solo estaba aprendiendo los ejemplos de memoria, sino que también mejoraba con datos de validación.
+
+---
+
+# 💾 Guardado del modelo
+
+Después de entrenar, guardé el mejor modelo.
+
+Esto es importante porque el entrenamiento puede generar varios estados del modelo.
+
+Yo quería quedarme con el modelo que funcionaba mejor en validación.
+
+El modelo guardado contenía los pesos aprendidos por la red.
+
+Los pesos son como la memoria del modelo. Son los números internos que la red usa para hacer sus predicciones.
+
+Una vez guardado, pude usar ese modelo más tarde sin tener que entrenarlo otra vez desde cero.
+
+---
+
+# 🔍 Evaluación del modelo
+
+Después de entrenar, comprobé algunas predicciones del modelo.
+
+La idea fue comparar:
+
+* El valor real.
+* El valor predicho por la red.
+
+Por ejemplo, tenía un caso donde el valor real era aproximadamente:
+
+* `v = 6.80`
+* `w = 0.002`
+
+Y el modelo predijo aproximadamente:
+
+* `v = 6.74`
+* `w = -0.013`
+
+La predicción no era exactamente igual, pero era bastante cercana.
+
+Esto me indicó que el modelo había aprendido una relación razonable entre la imagen y los comandos.
+
+En conducción autónoma, no siempre hace falta que el valor sea exactamente igual, pero sí tiene que ser suficientemente bueno para que el robot se mueva de forma estable.
+
+---
+
+# 🖼️ Visualización del preprocesamiento
+
+También añadí imágenes para mostrar el proceso de preparación de datos.
+
+Esto ayuda a entender qué hice antes de entrenar el modelo.
+
+---
+
+## Distribución de los datos
 
 ![Distribution](img1_P4.png)
 
+En esta imagen mostré cómo estaban distribuidos los valores del dataset.
+
+Esto es útil porque permite ver si hay muchos ejemplos de un tipo y pocos de otro.
+
+Por ejemplo, si hay muchas imágenes de rectas y pocas imágenes de curvas fuertes, el modelo puede aprender mejor las rectas que las curvas.
+
+Por eso, mirar la distribución ayuda a entender la calidad del dataset.
+
 ---
 
-## Original Image
+## Imagen original
 
 ![Original](img2_P4.png)
 
+Aquí mostré una imagen original del dataset.
+
+Esta es la imagen antes de hacer cambios.
+
+La imagen original contiene toda la información capturada por la cámara.
+
+Pero no toda esa información es útil para conducir.
+
 ---
 
-## Cropped Image
+## Imagen recortada
 
 ![Cropped](img3_P4.png)
 
+Aquí mostré la imagen después de recortar la parte superior.
+
+Con este paso eliminé información menos importante y dejé más visible la zona de conducción.
+
+Esto ayuda al modelo a concentrarse en la carretera.
+
 ---
 
-## Resized Image
+## Imagen redimensionada
 
 ![Resized](img4_P4.png)
 
+Aquí mostré la imagen después de cambiar su tamaño.
+
+La imagen ahora es más pequeña, pero todavía mantiene la información importante.
+
+Esto ayuda a entrenar más rápido y a usar menos memoria.
+
 ---
 
-## Processed
+## Imagen procesada
 
 ![Processed](img5_P4.png)
 
+Esta imagen representa el resultado después del preprocesamiento.
+
+Es decir, esta es la imagen que el modelo recibe durante el entrenamiento.
+
 ---
 
-## Brightness
+## Imagen con cambio de brillo
 
 ![Brightness](img6_P4.png)
 
-# 14. Export to ONNX
+Aquí mostré un ejemplo de Data Augmentation con brillo.
 
-The trained PyTorch model was exported to ONNX format.
+Esto significa que cambié un poco la luz de la imagen para hacer el entrenamiento más robusto.
 
-```python
-torch.onnx.export(
-    model,
-    dummy_input,
-    "model_single.onnx",
-    export_params=True,
-    opset_version=15
-)
-```
-
-The ONNX format is required by RoboticsAcademy / Unibotics.
-
-Final exported model:
-
-```text
-model_single.onnx
-```
-
-Model size:
-- approximately 1 MB
+Con esto, el modelo aprende mejor a trabajar con imágenes que no tienen siempre la misma iluminación.
 
 ---
 
-# 15. ONNX Runtime Inference
+# 📦 Exportación a ONNX
 
-The ONNX model was loaded using ONNX Runtime.
+Después de entrenar el modelo en PyTorch, lo convertí a formato ONNX.
 
-```python
-ort_session = onnxruntime.InferenceSession(
-    model_path,
-    providers=["CPUExecutionProvider"]
-)
-```
+Hice esto porque necesitaba usar el modelo dentro de RoboticsAcademy / Unibotics.
 
----
+El modelo entrenado en PyTorch no siempre se usa directamente dentro del simulador. Por eso, ONNX sirve como un formato intermedio.
 
-# 16. Integration into Unibotics
+La idea fue:
 
-The ONNX model was integrated into the RoboticsAcademy simulator.
+**modelo entrenado en PyTorch → modelo exportado en ONNX → modelo usado en Unibotics**
 
-Inference pipeline:
+El archivo final exportado fue:
 
-```text
-Camera Image
-    ↓
-Preprocessing
-    ↓
-ONNX Inference
-    ↓
-Predicted V,W
-    ↓
-HAL.setV()
-HAL.setW()
-```
+**model_single.onnx**
+
+El tamaño del modelo era pequeño, aproximadamente 1 MB.
+
+Esto es bueno porque un modelo pequeño es más fácil de ejecutar en tiempo real.
 
 ---
 
-# 17. Final Inference Code
+## Por qué ONNX fue importante
 
-```python
-while True:
+ONNX fue importante porque me permitió llevar el modelo entrenado a la parte de inferencia.
 
-    image = HAL.getImage()
+Entrenar el modelo es una cosa.
+Usar el modelo para controlar el robot es otra cosa.
 
-    input_tensor = preprocess(image)
+ONNX me permitió pasar de la parte de entrenamiento a la parte de ejecución dentro del simulador.
 
-    output = ort_session.run(
-        None,
-        {input_name: input_tensor}
-    )
-
-    prediction = output[0][0]
-
-    v = float(prediction[0])
-    w = float(prediction[1])
-
-    HAL.setV(v)
-    HAL.setW(w)
-
-    WebGUI.showImage(image)
-
-    Frequency.tick(30)
-```
+Es como guardar el cerebro entrenado del robot en un formato que Unibotics puede usar.
 
 ---
 
-# Results
+# ⚡ Inferencia en tiempo real
 
-The trained model was capable of:
-- following the circuit
-- predicting smooth steering commands
-- maintaining stable autonomous driving behavior
+Después de exportar el modelo, lo usé para hacer inferencia.
 
-The model achieved:
-- low validation loss
-- stable inference
-- real-time autonomous driving
+Inferencia significa usar el modelo ya entrenado para hacer predicciones.
 
+Durante la inferencia, el modelo ya no aprende. Solo usa lo que ya aprendió.
+
+El proceso fue este:
+
+1. El robot captura una imagen con la cámara.
+2. Yo preproceso esa imagen igual que en el entrenamiento.
+3. La imagen entra en el modelo ONNX.
+4. El modelo devuelve `v` y `w`.
+5. Yo mando esos valores al robot.
+6. El robot se mueve.
+7. El proceso se repite continuamente.
+
+Esto ocurre en tiempo real.
+
+Eso significa que el robot no espera a tener muchas imágenes. Va tomando decisiones mientras se mueve.
 
 ---
 
-## Result 1
+# 🤖 Integración en Unibotics
+
+La última parte fue integrar el modelo dentro de Unibotics.
+
+Esto fue muy importante porque ahí comprobé si el modelo funcionaba realmente para controlar el robot.
+
+El robot hacía este ciclo:
+
+**capturar imagen → preprocesar → predecir → mover**
+
+Primero, el robot capturaba la imagen de la cámara.
+
+Después, yo aplicaba el mismo preprocesamiento que usé durante el entrenamiento.
+
+Esto es muy importante. Si durante el entrenamiento la imagen tenía un tamaño y una normalización, durante la inferencia tenía que hacer lo mismo.
+
+Si no, el modelo podría confundirse.
+
+Luego, el modelo ONNX calculaba la predicción.
+
+La predicción daba dos valores:
+
+* `v`
+* `w`
+
+Después, yo usaba esos valores para mover el robot con las funciones de control del simulador.
+
+Así el robot podía conducir usando solamente la cámara y el modelo entrenado.
+
+---
+
+# 🖼️ Resultados en Unibotics
+
+Después de integrar el modelo, probé el robot en el circuito.
+
+El modelo fue capaz de controlar el robot y seguir el camino.
+
+Los resultados mostraron que el robot podía:
+
+* Avanzar por el circuito.
+* Girar según la imagen.
+* Mantener un movimiento estable.
+* Usar predicciones suaves.
+* Funcionar en tiempo real.
+
+---
+
+## Resultado 1
 
 ![Result1](imgR1_P4.png)
 
+En este primer resultado, el robot empieza a conducir usando el modelo entrenado.
+
+Aquí el robot ya no usa reglas manuales. Usa la red neuronal para decidir su velocidad y su giro.
+
 ---
 
-## Result 2
+## Resultado 2
 
 ![Result2](imgR2_P4.png)
 
+En este resultado, el robot sigue avanzando por el circuito.
+
+El modelo mira la imagen y predice los comandos necesarios para mantenerse dentro del camino.
+
 ---
 
-## Result 3
+## Resultado 3
 
 ![Result3](imgR3_P4.png)
 
+Aquí se puede ver que el robot sigue adaptando su dirección.
+
+Cuando la imagen cambia, la predicción del modelo también cambia.
+
+Esto permite que el robot responda al circuito.
+
 ---
 
-##  Result 4
+## Resultado 4
 
 ![Result4](imgR4_P4.png)
 
-# Technologies Used
+En este resultado final, el robot mantiene una conducción estable.
 
-- Python
-- PyTorch
-- OpenCV
-- NumPy
-- ONNX
-- ONNX Runtime
-- RoboticsAcademy
-- Unibotics
+El comportamiento fue suficientemente bueno para seguir el circuito usando solamente visión y Deep Learning.
 
 ---
 
-# Future Improvements
+# 🛠️ Tecnologías utilizadas
 
-Possible future improvements include:
-- training with more epochs
-- larger datasets
-- temporal models (CNN + LSTM)
-- obstacle avoidance
-- domain adaptation to real robots
-- reinforcement learning approaches
+En esta práctica utilicé varias tecnologías.
+
+Usé **Python** como lenguaje principal.
+
+Usé **PyTorch** para crear, entrenar y guardar la red neuronal.
+
+Usé **OpenCV** para leer imágenes y hacer el preprocesamiento.
+
+Usé **NumPy** para trabajar con matrices y valores numéricos.
+
+Usé **Pandas** para leer los archivos CSV del dataset.
+
+Usé **ONNX** para exportar el modelo entrenado.
+
+Usé **ONNX Runtime** para ejecutar el modelo exportado.
+
+Usé **RoboticsAcademy / Unibotics** para probar el robot en el simulador.
+
+Cada herramienta tuvo una función concreta dentro del proyecto.
 
 ---
 
-# Conclusion
+# 📊 Resumen de lo que hice
 
-This project demonstrates how Deep Learning can replace traditional computer vision and control pipelines in autonomous driving tasks.
+En resumen, en esta práctica hice todo este proceso:
 
-The neural network successfully learned to predict driving commands directly from images and was deployed in real time inside the RoboticsAcademy environment using ONNX inference.
+1. Primero entendí que el objetivo era controlar el robot usando imágenes.
+2. Después cargué el dataset con imágenes y comandos.
+3. Luego leí los archivos CSV con las velocidades `v` y `w`.
+4. Después preparé las imágenes para la red neuronal.
+5. Recorté la parte superior de las imágenes.
+6. Cambié el tamaño de las imágenes.
+7. Normalicé los valores de los píxeles.
+8. Apliqué cambios de brillo para mejorar la robustez.
+9. Preparé los datos en formato compatible con PyTorch.
+10. Organicé los datos en lotes para entrenar.
+11. Dividí los datos en entrenamiento y validación.
+12. Preparé una red neuronal para predecir velocidad y giro.
+13. Entrené el modelo con muchas imágenes.
+14. Observé que la pérdida bajaba durante el entrenamiento.
+15. Guardé el mejor modelo.
+16. Comparé algunas predicciones con los valores reales.
+17. Exporté el modelo a ONNX.
+18. Cargué el modelo ONNX para inferencia.
+19. Integré el modelo dentro de Unibotics.
+20. Probé el robot conduciendo en tiempo real.
+
+---
+
+# ✅ Conclusiones
+
+En esta práctica conseguí implementar un sistema de control visual End-to-End usando Deep Learning.
+
+Lo más importante es que el robot aprendió a conducir usando imágenes de la cámara frontal.
+
+Primero preparé los datos. Después preprocesé las imágenes para que el modelo recibiera información más limpia y más útil.
+
+Luego entrené una red neuronal para predecir directamente la velocidad lineal y la velocidad angular.
+
+Durante el entrenamiento, observé que la pérdida bajaba, lo que significa que el modelo estaba aprendiendo.
+
+Después exporté el modelo a ONNX para poder usarlo en Unibotics.
+
+Finalmente, integré el modelo en el simulador y el robot pudo conducir en tiempo real usando solamente la imagen de la cámara.
+
+Esta práctica me ayudó a entender que Deep Learning puede reemplazar una parte del sistema clásico de visión y control.
+
+En vez de programar reglas manuales, entrené un modelo con ejemplos para que aprendiera el comportamiento de conducción.
+
+---
+
+# 🚀 Posibles mejoras futuras
+
+Aunque el resultado fue bueno, el sistema se podría mejorar.
+
+Una mejora sería entrenar durante más épocas. Con más entrenamiento, el modelo podría aprender mejor, aunque también habría que vigilar que no memorice demasiado.
+
+Otra mejora sería usar más datos, especialmente más ejemplos de curvas difíciles. Si el dataset tiene más variedad, el modelo puede aprender situaciones más diferentes.
+
+También se podría mejorar el balance del dataset. Si hay muchas rectas y pocas curvas, el modelo puede aprender muy bien a ir recto pero peor a girar.
+
+Otra mejora sería usar modelos con memoria temporal. En esta práctica, el modelo toma una decisión usando una imagen. Pero en conducción real, también puede ser útil recordar imágenes anteriores.
+
+Por ejemplo, una arquitectura con CNN y LSTM podría ayudar porque tendría en cuenta la evolución del movimiento.
+
+También se podría probar el sistema en otros circuitos o incluso adaptarlo a un robot real.
+
+---
+
+# 🧠 Explicación simple de todo el trabajo
+
+De forma muy sencilla, lo que hice fue enseñar al robot a conducir mirando imágenes.
+
+Primero tenía muchas imágenes del circuito. Cada imagen tenía una respuesta correcta: la velocidad y el giro que el robot debía hacer.
+
+Después preparé esas imágenes. Les quité la parte que no era importante, las hice más pequeñas y puse sus valores en una escala más cómoda.
+
+Luego usé esas imágenes para entrenar una red neuronal.
+
+Al principio, la red no sabía conducir. Pero después de ver muchos ejemplos, empezó a aprender.
+
+La red aprendió algo parecido a esto:
+
+* Si ve que el camino sigue recto, predice poco giro.
+* Si ve que el camino gira, predice más giro.
+* Si necesita avanzar, predice una velocidad lineal.
+* Si la situación cambia, cambia también la predicción.
+
+Después guardé el modelo entrenado.
+
+Luego convertí ese modelo a ONNX para poder usarlo dentro de Unibotics.
+
+Finalmente, puse el modelo dentro del simulador. El robot empezó a capturar imágenes con la cámara, el modelo predijo `v` y `w`, y el robot se movió usando esos valores.
+
+En resumen, hice este ciclo:
+
+**mirar con la cámara → preparar la imagen → usar el modelo → predecir velocidad y giro → mover el robot**
+
+Y este ciclo se repite todo el tiempo mientras el robot conduce.
+
+Lo importante de esta práctica es que yo no escribí reglas manuales para cada curva. En vez de eso, entrené un modelo para que aprendiera a conducir usando ejemplos.
