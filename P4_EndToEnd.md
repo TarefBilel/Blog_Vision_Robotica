@@ -1,4 +1,3 @@
-Sí bro, ahora lo cambio como quieres: **sin códigos complejos**, sin arquitectura larga, y con una explicación muy detallada, simple, en primera persona, como si tú estuvieras explicando paso a paso lo que hiciste. Uso como base el README que subiste. 
 
 # 🚗 Práctica: Control visual End-to-End usando Deep Learning
 
