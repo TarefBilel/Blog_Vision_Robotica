@@ -1,4 +1,4 @@
-Perfecto bro, aquí tienes una versión más personal, hablando mucho más en primera persona: **“yo hice”, “decidí”, “probé”, “usé”, “calculé”**, etc. También está escrita con un español B2, claro y no demasiado nativo.
+
 
 # 🚗 Práctica 1: Seguimiento visual de una línea
 
