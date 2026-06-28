@@ -449,8 +449,14 @@ Y este ciclo se repite todo el tiempo mientras el robot sigue la línea.
 
 ## 🎥 Video de demostración
 
+
+
 En este video se puede ver el robot siguiendo la línea roja en el simulador.
 
 <p align="center">
-  <video src="P1_Video.webm" controls width="700"></video>
+  <img src="P1_Video.gif" width="700"/>
 </p>
+
+Si el GIF no se carga correctamente, también se puede abrir el video aquí:
+
+👉 [Ver video de la práctica 1](P1_Video.webm)
