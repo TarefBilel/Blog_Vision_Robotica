@@ -651,41 +651,9 @@ Puntos importantes:
 
 ![Result 5](img5_P3.png)
 
----
-
-## ✅ Resultado 6 — Estado final de localización
-
-En el resultado final, el robot mantiene una estimación estable después de varias actualizaciones visuales.
-
-El robot rojo sigue cerca del robot verde.
-
-Esto muestra que el sistema consiguió combinar bien la visión y la odometría.
-
-Puntos importantes:
-
-* La pose estimada sigue cerca del Ground Truth.
-* El sistema se mantiene robusto durante un movimiento largo.
-* La odometría se corrige continuamente con AprilTags.
-
-![Result 6](img6_P3.png)
 
 ---
 
-# 🎥 Video de demostración
-
-En este video se puede ver el robot realizando la localización visual con AprilTags dentro del simulador.
-
-El robot rojo representa la pose estimada por mi sistema, y el robot verde representa la posición real.
-
-<p align="center">
-  <img src="P3_Video.gif" width="700"/>
-</p>
-
-Si el GIF no se carga correctamente, también se puede abrir el video aquí:
-
-👉 [Ver video de la práctica 3](P3_Video.webm)
-
----
 
 # 📈 Observaciones finales
 
