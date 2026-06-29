@@ -778,3 +778,9 @@ mirar con dos cámaras → detectar bordes → buscar puntos iguales → calcula
 ```
 
 En resumen, yo no reconstruí la escena usando magia. Lo hice comparando dos imágenes y usando geometría para calcular dónde están los objetos en el espacio.
+
+## 🎥 Video de demostración
+
+En este video se puede ver el resultado de la reconstrucción 3D dentro del simulador.
+
+https://drive.google.com/file/d/1u_G3QgKU1zmJcjxR8cgEtO9oRaLX5rmj/view?usp=sharing
