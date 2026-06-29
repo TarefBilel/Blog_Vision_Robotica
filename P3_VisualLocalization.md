@@ -14,13 +14,13 @@
 
 En esta práctica he trabajado con un sistema de localización visual usando AprilTags dentro de RoboticsAcademy / Unibotics.
 
-La idea principal fue estimar la posición del robot usando la cámara y unos marcadores visuales colocados en el entorno.
+La idea principal fue hacer que el robot pudiera saber dónde está dentro del mapa usando su cámara.
 
-Estos marcadores se llaman **AprilTags**. Son como cuadrados especiales con un dibujo dentro. El robot puede verlos con su cámara y saber qué marcador está mirando.
+Para eso usé unos marcadores visuales llamados **AprilTags**. Estos marcadores son como pequeños carteles cuadrados que el robot puede ver con la cámara.
 
-Cada AprilTag tiene una posición conocida en el mapa. Entonces, cuando el robot ve un marcador, puede usar esa información para calcular dónde está él mismo.
+Cada AprilTag tiene una posición conocida dentro del mapa. Entonces, cuando el robot ve uno de estos marcadores, puede usar esa información para calcular su propia posición.
 
-El objetivo fue estimar la pose 2D del robot:
+El objetivo fue estimar la pose del robot en 2D:
 
 ```text
 pose = (x, y, yaw)
@@ -28,37 +28,38 @@ pose = (x, y, yaw)
 
 Esto significa:
 
-* `x`: posición del robot en el eje X.
-* `y`: posición del robot en el eje Y.
+* `x`: posición del robot en el mapa.
+* `y`: posición del robot en el mapa.
 * `yaw`: orientación del robot, es decir, hacia dónde está mirando.
 
-En el simulador aparecen tres robots:
+En el simulador aparecen varios robots o posiciones:
 
-* 🟢 El robot verde representa la posición real, llamada Ground Truth.
-* 🔵 El robot azul representa la odometría, que puede tener ruido.
+* 🟢 El robot verde representa la posición real del robot.
+* 🔵 El robot azul representa la odometría, que puede tener error.
 * 🔴 El robot rojo representa la posición estimada por mi sistema.
 
-El objetivo principal fue hacer que el robot rojo siguiera al robot verde lo mejor posible.
+Mi objetivo fue hacer que el robot rojo estuviera lo más cerca posible del robot verde.
 
 ---
 
 # 📌 Idea general del proyecto
 
-En esta práctica hice que el robot usara su cámara para detectar AprilTags.
+La idea de esta práctica fue bastante sencilla de entender.
 
-Cada AprilTag tiene una posición conocida en el mapa. Esa información está guardada en un archivo YAML del entorno.
+Yo hice que el robot mirara el entorno con su cámara. Cuando el robot veía un AprilTag, mi programa detectaba ese marcador y calculaba dónde estaba el robot.
 
-La idea fue esta:
+Es como si el robot dijera:
+
+**“Veo este marcador en la pared. Como sé dónde está este marcador en el mapa, puedo calcular dónde estoy yo.”**
+
+Entonces, el sistema funciona así:
 
 1. El robot mira con la cámara.
-2. Si ve un AprilTag, detecta sus esquinas.
-3. Como sé dónde está ese AprilTag en el mundo, puedo calcular dónde está la cámara.
-4. Si sé dónde está la cámara, puedo estimar dónde está el robot.
-5. Después muestro esa posición estimada en WebGUI.
-
-De forma sencilla, el robot hace algo parecido a esto:
-
-**“Veo este marcador. Sé dónde está este marcador en el mapa. Entonces puedo calcular dónde estoy yo.”**
+2. Mi programa busca AprilTags en la imagen.
+3. Si encuentra un AprilTag, calcula su posición respecto a la cámara.
+4. Después usa la posición conocida del AprilTag en el mapa.
+5. Finalmente calcula la posición estimada del robot.
+6. Esa posición se muestra como el robot rojo en WebGUI.
 
 ---
 
@@ -66,20 +67,21 @@ De forma sencilla, el robot hace algo parecido a esto:
 
 El objetivo de esta práctica fue crear un sistema de localización visual para un robot móvil.
 
-Yo quería que el robot pudiera saber su posición usando la cámara y los AprilTags.
+Yo quería que el robot pudiera moverse por el entorno y estimar su posición usando la cámara y los AprilTags.
 
-Para conseguirlo, hice varias partes:
+Para conseguirlo, hice varias cosas:
 
-* Primero, cargué las posiciones conocidas de los AprilTags.
-* Después, usé la cámara del robot para buscar marcadores.
-* Luego, detecté los AprilTags en la imagen.
-* Después, calculé la posición de la cámara respecto al marcador.
-* Luego, transformé esa información para obtener la pose del robot en el mundo.
-* Después, combiné la información visual con la odometría.
-* También añadí suavizado para evitar movimientos bruscos en la estimación.
-* Finalmente, mostré la pose estimada en WebGUI.
+* Primero, usé la cámara del robot para obtener imágenes.
+* Después, busqué AprilTags dentro de esas imágenes.
+* Luego, comprobé si los tags detectados eran válidos.
+* Después, calculé la pose del tag respecto a la cámara.
+* Luego, usé la posición conocida del tag para calcular la posición del robot.
+* También combiné esta información con la odometría.
+* Añadí suavizado para que el robot rojo no saltara mucho.
+* Añadí filtros para rechazar detecciones malas.
+* Finalmente, mostré el resultado en WebGUI.
 
-Mi objetivo no era solo detectar AprilTags, sino usar esos marcadores para corregir la posición del robot y hacer que la estimación fuera estable.
+Mi objetivo no era solo detectar el marcador. Lo importante era usar ese marcador para saber dónde estaba el robot.
 
 ---
 
@@ -87,41 +89,39 @@ Mi objetivo no era solo detectar AprilTags, sino usar esos marcadores para corre
 
 La localización significa saber dónde está el robot.
 
-Para explicarlo de forma simple, imagina que estás en una habitación y ves un cartel en la pared.
+Para explicarlo fácil, imagina que estás en una habitación y ves una señal en una pared.
 
-Si tú sabes exactamente dónde está ese cartel, puedes usarlo para saber dónde estás tú.
+Si tú sabes dónde está esa señal, puedes imaginar dónde estás tú.
 
 Por ejemplo:
 
-* Si ves el cartel muy cerca, estás cerca de la pared.
-* Si lo ves lejos, estás más lejos.
-* Si lo ves a la derecha, sabes que estás mirando un poco hacia un lado.
-* Si lo ves centrado, sabes que estás mirando más directamente hacia él.
+* Si ves la señal muy cerca, estás cerca de ella.
+* Si la ves lejos, estás más lejos.
+* Si la ves a la derecha, sabes que tienes que girar un poco.
+* Si la ves centrada, sabes que estás mirando hacia ella.
 
 Con los AprilTags pasa algo parecido.
 
-El robot ve un marcador, y como el sistema ya sabe dónde está ese marcador en el mundo, puede calcular la posición del robot.
+El robot ve un marcador y usa ese marcador como una referencia.
+
+Entonces, los AprilTags son como “puntos conocidos” dentro del mapa.
 
 ---
 
 # 🔁 Flujo general del sistema
 
-El sistema que hice sigue este proceso:
+El sistema que hice sigue este flujo:
 
 ```text
 Imagen de la cámara
     ↓
-Preparación en gris
-    ↓
 Detección de AprilTags
     ↓
-Estimación de pose con PnP
-    ↓
-Cálculo de la posición de la cámara
+Cálculo de la pose con geometría
     ↓
 Cálculo de la posición del robot
     ↓
-Corrección de la odometría
+Corrección con odometría
     ↓
 Visualización en WebGUI
 ```
@@ -129,364 +129,232 @@ Visualización en WebGUI
 Explicado de forma más simple:
 
 1. Primero, el robot mira con la cámara.
-2. Después, convierto la imagen para detectar mejor los marcadores.
-3. Luego, busco AprilTags en la imagen.
-4. Si encuentro un AprilTag válido, calculo su posición respecto a la cámara.
-5. Después, uso la posición conocida del marcador para calcular dónde está el robot.
-6. Luego, corrijo la estimación del robot.
-7. Finalmente, muestro el robot rojo en WebGUI.
+2. Después, mi programa busca los marcadores.
+3. Si encuentra un marcador, calcula dónde está.
+4. Luego calcula dónde está el robot.
+5. Después corrige la estimación usando la odometría.
+6. Finalmente muestra la posición estimada como robot rojo.
 
 ---
 
 # 🏷️ Detección de AprilTags
 
-Para detectar los AprilTags, usé la librería `pyapriltags`.
+Para detectar los marcadores, usé la librería `pyapriltags`.
 
-Esta librería permite encontrar marcadores AprilTag dentro de una imagen.
+Esta librería permite encontrar AprilTags dentro de una imagen.
 
-Un AprilTag tiene un identificador. Por ejemplo, un marcador puede tener ID 1, otro ID 2, etc.
-
-Cuando el robot ve un marcador, el detector devuelve información importante como:
+Cuando el robot ve un marcador, el detector puede obtener información como:
 
 * El ID del marcador.
-* Las esquinas del marcador en la imagen.
+* Las esquinas del marcador.
 * El centro del marcador.
-* El tamaño aproximado del marcador en la imagen.
+* El tamaño del marcador en la imagen.
 
-Esto es importante porque con las esquinas del marcador puedo calcular la pose usando geometría.
+Esto es importante porque con las esquinas puedo calcular la posición del marcador respecto a la cámara.
 
----
+Yo acepté solo los AprilTags que tenían sentido. Por ejemplo, si un marcador se veía demasiado pequeño o la detección no era fiable, prefería no usarlo.
 
-## Por qué usé AprilTags
-
-Usé AprilTags porque son muy útiles para localización visual.
-
-Tienen varias ventajas:
-
-* Son fáciles de detectar.
-* Cada marcador tiene un ID único.
-* Se pueden usar para saber la posición del robot.
-* Funcionan bien en robótica.
-* Permiten hacer una estimación de pose bastante precisa.
-
-En esta práctica, los AprilTags fueron como puntos de referencia para el robot.
-
-Es como si el robot tuviera señales en el mundo que le ayudan a orientarse.
+Esto ayuda a evitar errores.
 
 ---
 
 # 📷 Modelo de cámara
 
-Para calcular la posición del robot, también tuve que usar un modelo de cámara.
+También usé un modelo simple de cámara.
 
-La cámara no es solo una imagen. También tiene parámetros internos.
+La cámara no solo da una imagen. También tiene parámetros que ayudan a entender cómo se forma esa imagen.
 
-Estos parámetros ayudan a saber cómo un punto 3D del mundo aparece en una imagen 2D.
+La idea simple es que el modelo de cámara ayuda a transformar lo que veo en la imagen en información geométrica.
 
-La cámara tiene valores como:
-
-* Distancia focal.
-* Centro de la imagen.
-* Tamaño de la imagen.
-
-En esta práctica usé un modelo de cámara simple, llamado modelo pinhole.
-
-No es necesario explicarlo con fórmulas complicadas. La idea simple es:
-
-**el modelo de cámara ayuda a pasar de puntos en la imagen a información geométrica del mundo.**
-
-Sin este modelo, sería difícil saber dónde está el AprilTag realmente respecto al robot.
+Sin este modelo sería difícil calcular si el marcador está cerca, lejos, a la izquierda o a la derecha.
 
 ---
 
 # 📐 Estimación de pose con PnP
 
-Después de detectar un AprilTag, usé PnP para estimar su posición.
+Después de detectar un AprilTag, usé un método llamado PnP.
 
-PnP significa Perspective-n-Point.
+No hace falta explicarlo con fórmulas complicadas.
 
-La idea es que conozco dos cosas:
+La idea es esta:
 
-1. Las esquinas reales del AprilTag en 3D.
-2. Las esquinas del AprilTag que aparecen en la imagen.
+* Yo sé que el AprilTag es un cuadrado.
+* Yo sé su tamaño real.
+* La cámara ve ese cuadrado en la imagen.
+* Entonces puedo calcular desde dónde lo está viendo la cámara.
 
-Como el tamaño del AprilTag es conocido, puedo usar esa información para calcular la posición del marcador respecto a la cámara.
+Es como mirar una hoja cuadrada en una foto. Si sé el tamaño real de la hoja y veo cómo aparece en la imagen, puedo estimar la posición de la cámara respecto a esa hoja.
 
-En esta práctica, el tamaño del marcador era:
-
-```text
-TAG_SIZE = 0.24
-```
-
-Esto significa que el AprilTag tiene un tamaño conocido.
-
-Con esto, el sistema puede calcular:
-
-* A qué distancia está el marcador.
-* En qué dirección está el marcador.
-* Cómo está orientado respecto a la cámara.
-
----
-
-## Explicación simple de PnP
-
-Para entender PnP de forma sencilla, imagina que tienes una foto de una mesa cuadrada.
-
-Si sabes el tamaño real de la mesa y ves cómo aparece en la foto, puedes calcular más o menos desde dónde se tomó la foto.
-
-Con un AprilTag pasa algo parecido.
-
-El marcador es cuadrado y tiene un tamaño conocido.
-La cámara lo ve en la imagen.
-Entonces, usando las esquinas del cuadrado, puedo estimar la posición de la cámara respecto al marcador.
+En esta práctica hice eso con los AprilTags.
 
 ---
 
 # 🌍 Del marcador a la posición del robot
 
-Después de calcular la posición del marcador respecto a la cámara, tuve que convertir esa información a la posición del robot en el mundo.
+Cuando ya sabía dónde estaba el marcador respecto a la cámara, el siguiente paso fue calcular dónde estaba el robot en el mapa.
 
-Esto es una parte muy importante.
+El razonamiento que hice fue:
 
-El mapa ya sabe dónde está cada AprilTag.
-
-Entonces, cuando el robot detecta un marcador, yo puedo hacer este razonamiento:
-
-1. Sé dónde está el marcador en el mundo.
-2. Sé dónde está la cámara respecto al marcador.
+1. Sé dónde está el AprilTag en el mapa.
+2. Calculo dónde está la cámara respecto al AprilTag.
 3. Entonces puedo calcular dónde está la cámara en el mundo.
-4. Si sé dónde está la cámara, puedo estimar dónde está el robot.
+4. Como la cámara está montada en el robot, puedo estimar dónde está el robot.
 
-Al final, obtengo la pose del robot:
+Al final obtengo:
 
 ```text
 x, y, yaw
 ```
 
-Esto es lo que quiero mostrar con el robot rojo.
+Esos valores son la posición y orientación estimada del robot.
 
 ---
 
 # 🔁 Odometría y corrección visual
 
-En esta práctica no dependí solamente de la visión.
+En esta práctica no usé solo la visión.
 
 También usé la odometría.
 
-La odometría es una estimación del movimiento del robot usando sus movimientos internos. Por ejemplo, si el robot avanza, la odometría estima que su posición ha cambiado.
+La odometría estima el movimiento del robot, pero puede tener error. Por ejemplo, si el robot avanza, la odometría calcula que el robot se ha movido. Pero con el tiempo puede equivocarse un poco.
 
-El problema es que la odometría puede tener error.
+Por eso yo combiné dos cosas:
 
-Con el tiempo, ese error puede crecer. Esto se llama deriva o drift.
+* La visión con AprilTags.
+* La odometría del robot.
 
-Por eso, yo combiné odometría y visión.
+Cuando el robot ve un AprilTag, uso la visión para corregir la posición.
 
-La idea fue:
+Cuando el robot no ve ningún AprilTag, uso la odometría para seguir estimando el movimiento.
 
-* Cuando el robot ve AprilTags, uso la visión para corregir la odometría.
-* Cuando el robot no ve AprilTags, uso la odometría para seguir estimando el movimiento.
-
-Esto es útil porque si el robot pierde un marcador durante un momento, la estimación no se queda congelada.
-
-El sistema puede seguir usando la odometría hasta que aparezca otro marcador.
+Esto es importante porque si el robot pierde un marcador durante un momento, la posición estimada no se queda parada.
 
 ---
 
-## Explicación simple
+# 🧭 Orientación del robot
 
-La odometría es como contar tus pasos.
-
-Si caminas y cuentas tus pasos, puedes estimar dónde estás. Pero si te equivocas un poco en cada paso, al final tu posición puede tener error.
-
-La visión con AprilTags es como mirar un cartel que te dice dónde estás.
-
-Entonces, yo hice que el robot usara las dos cosas:
-
-* La odometría para moverse entre marcadores.
-* Los AprilTags para corregir el error.
-
-Esto hace que la localización sea más estable.
-
----
-
-# 🧭 Calibración del yaw
-
-También trabajé con la orientación del robot, llamada `yaw`.
+También tuve que trabajar con la orientación del robot, que se llama `yaw`.
 
 El `yaw` indica hacia dónde está mirando el robot.
 
-Esta parte fue importante porque los sistemas de coordenadas pueden ser diferentes.
+Esta parte fue importante porque la cámara, OpenCV, Gazebo y el robot pueden usar sistemas de coordenadas diferentes.
+
+Si no se ajusta bien esta orientación, el robot rojo puede aparecer girado de forma incorrecta.
+
+Por eso añadí correcciones para que la orientación del robot estimado fuera más coherente con el movimiento real.
+
+---
+
+# 🧪 Mejoras para que el sistema sea más estable
+
+Durante la práctica añadí varias mejoras para que la localización fuera más estable.
+
+Esto fue necesario porque la detección visual puede fallar a veces.
 
 Por ejemplo:
 
-* OpenCV puede usar un sistema de coordenadas.
-* Gazebo puede usar otro sistema.
-* El robot puede tener otra orientación de referencia.
+* El AprilTag puede estar lejos.
+* El AprilTag puede verse pequeño.
+* El AprilTag puede verse de lado.
+* El robot puede perder el marcador.
+* La pose puede saltar de golpe.
+* La odometría puede acumular error.
 
-Entonces, si no corrijo bien el yaw, el robot rojo puede aparecer girado o mal orientado.
-
-Por eso añadí una calibración automática del yaw.
-
-La idea fue ajustar poco a poco la orientación estimada para que coincidiera mejor con el movimiento real del robot.
-
----
-
-# 🧪 Mejoras de robustez
-
-Durante la práctica, añadí varias mejoras para hacer el sistema más estable.
-
-Esto fue necesario porque la detección visual no siempre es perfecta.
-
-A veces:
-
-* El marcador se ve pequeño.
-* El marcador se ve parcialmente.
-* Hay ruido en la imagen.
-* La estimación PnP puede dar un resultado raro.
-* La pose puede saltar de forma brusca.
-
-Por eso añadí filtros y comprobaciones.
+Para mejorar esto hice varias cosas.
 
 ---
 
-## 1. Filtro por área del AprilTag
+## 1. Filtro por tamaño del AprilTag
 
-Primero comprobé el tamaño del marcador en la imagen.
+Primero, comprobé el tamaño del marcador en la imagen.
 
-Si el marcador se ve demasiado pequeño, la estimación puede ser mala.
+Si el AprilTag se veía demasiado pequeño, no confiaba mucho en esa detección.
 
-Por eso, rechacé marcadores con área muy pequeña.
+Esto es porque un marcador pequeño puede dar una estimación menos precisa.
 
-La idea fue:
-
-**si el AprilTag está demasiado lejos o se ve muy pequeño, no confío mucho en él.**
+Entonces, preferí usar marcadores que se veían suficientemente grandes.
 
 ---
 
-## 2. Validación de PnP
+## 2. Validación de la pose
 
-También comprobé que la solución de PnP fuera válida.
+También comprobé que la pose calculada tuviera sentido.
 
-No todos los resultados de PnP son buenos.
+Si el cálculo daba una posición rara o imposible, rechazaba ese resultado.
 
-A veces puede dar una pose que no tiene sentido.
-
-Entonces, añadí comprobaciones para aceptar solo resultados fiables.
+Esto ayudó a evitar que el robot rojo saltara a posiciones incorrectas.
 
 ---
 
-## 3. Validación de profundidad positiva
+## 3. Rechazo de saltos bruscos
 
-También comprobé que la profundidad fuera positiva.
+También añadí un control para evitar saltos grandes.
 
-Esto significa que el marcador debe estar delante de la cámara, no detrás.
-
-Si el cálculo dice que el marcador está detrás de la cámara, ese resultado no tiene sentido y lo rechazo.
-
----
-
-## 4. Filtro de reproyección
-
-También usé la idea de reproyección.
-
-Esto significa comprobar si la pose calculada explica bien lo que veo en la imagen.
-
-Si el error de reproyección es grande, significa que la estimación no es buena.
-
-Entonces, rechazo ese resultado.
-
----
-
-## 5. Rechazo de saltos visuales
-
-También añadí un filtro para evitar saltos bruscos.
-
-A veces, una detección mala puede hacer que la pose estimada salte mucho de golpe.
-
-Por ejemplo, el robot rojo puede aparecer de repente muy lejos.
+A veces una mala detección puede hacer que la posición estimada cambie mucho de golpe.
 
 Eso no es realista.
 
-Entonces, añadí un límite para rechazar cambios demasiado grandes.
+Entonces, si la nueva estimación estaba demasiado lejos de la anterior, no la aceptaba directamente.
 
-Así el movimiento del robot rojo es más estable.
-
----
-
-## 6. Suavizado de pose
-
-También apliqué suavizado.
-
-El suavizado sirve para que la pose estimada no cambie de forma demasiado brusca.
-
-En vez de cambiar directamente a la nueva posición, mezclo un poco la posición anterior con la nueva.
-
-Esto hace que el movimiento del robot rojo sea más suave y más fácil de seguir visualmente.
+Esto hizo que el robot rojo se moviera de forma más suave.
 
 ---
 
-## 7. Fusión de varios tags
+## 4. Suavizado de la pose
 
-Si el robot detecta más de un AprilTag, puedo usar más información.
+También usé suavizado.
 
-En vez de depender de un solo marcador, puedo combinar varios resultados.
+El suavizado significa que no cambio la posición estimada de forma brusca.
 
-Esto ayuda porque si un marcador tiene un poco de error, otro marcador puede compensar.
+En vez de pasar directamente de una posición a otra, mezclo un poco la posición anterior con la nueva.
 
-La fusión de varios tags hace que la estimación sea más robusta.
+Así el robot rojo se mueve de manera más estable y no salta demasiado.
 
 ---
 
-## 8. Evitación de obstáculos con láser
+## 5. Uso de varios AprilTags
 
-También añadí un comportamiento básico con el láser para evitar obstáculos.
+Cuando el robot veía más de un AprilTag, podía usar más información.
 
-Esto no es la parte principal de la localización, pero ayuda al robot a moverse de forma más segura por el entorno.
+Esto ayuda porque usar varios marcadores puede mejorar la estimación.
 
-Si el robot detecta un obstáculo cerca, cambia su movimiento para evitar chocar.
+Si un marcador tiene un poco de error, otro marcador puede ayudar a corregir.
 
 ---
 
 # 🚗 Movimiento del robot
 
-El robot no solo estima su posición, también se mueve por el entorno.
+También programé un comportamiento simple para el robot.
 
-Yo definí un comportamiento simple:
+El robot hacía esto:
 
-* Si el robot ve un AprilTag, avanza despacio.
-* Si no ve ningún AprilTag, gira para buscar uno.
-* Si hay un obstáculo cerca, evita el obstáculo.
+* Si veía un AprilTag, avanzaba despacio.
+* Si no veía ningún AprilTag, giraba para buscar uno.
+* Si estaba cerca de un obstáculo, intentaba evitarlo.
+* Si el tag estaba a un lado de la imagen, el robot intentaba orientarse mejor.
 
-Esto permite que el robot siga explorando y buscando marcadores.
-
-También intenté que el robot mantuviera el AprilTag más o menos centrado en la cámara.
-
-Si el marcador está muy a un lado, el robot puede girar para verlo mejor.
+Esto ayudó a que el robot pudiera moverse por el entorno y seguir detectando marcadores.
 
 ---
 
 # 🖥️ Visualización y depuración
 
-También añadí información de depuración para entender qué estaba pasando.
+La visualización fue muy importante en esta práctica.
 
-Esto fue muy importante porque, cuando algo falla en localización, no siempre es fácil saber por qué.
+En la parte izquierda de las imágenes se ve el mapa desde arriba.
 
-En la visualización pude ver información como:
+En ese mapa se pueden ver:
 
-* Cuántos AprilTags se detectan.
-* Cuántos tags son válidos.
-* Qué ID tiene el marcador.
-* La pose visual estimada.
-* La pose final estimada.
-* Información del yaw.
-* La fuente de la pose.
-* Los cuadros alrededor de los marcadores.
+* La posición real.
+* La posición estimada.
+* La trayectoria del robot.
+* Las líneas rojas que muestran el recorrido estimado.
 
-Esto me ayudó a corregir errores y mejorar el sistema.
+En la parte derecha se ve la imagen de la cámara del robot.
 
-También mostré la pose estimada usando WebGUI.
+Ahí se puede ver cómo el robot detecta los AprilTags en la pared. Los marcadores aparecen con un cuadro verde alrededor.
 
-El robot rojo representa la pose calculada por mi algoritmo.
+Esta visualización me ayudó mucho, porque pude ver si el robot estaba detectando bien los tags y si la posición roja seguía bien a la posición real.
 
 ---
 
@@ -512,7 +380,7 @@ Para ejecutar la práctica, seguí estos pasos:
 3. Copié el contenido de `code.py`.
 4. Lo pegué en el editor de la práctica.
 5. Ejecuté la simulación.
-6. Observé la posición estimada en WebGUI.
+6. Observé el robot rojo y el robot verde en WebGUI.
 
 La idea era comprobar si el robot rojo seguía al robot verde.
 
@@ -520,165 +388,157 @@ La idea era comprobar si el robot rojo seguía al robot verde.
 
 # ⚙️ Parámetros principales
 
-Los parámetros principales que usé fueron:
+Los parámetros principales que usé controlan el tamaño del AprilTag, la velocidad del robot, la corrección visual y los límites para rechazar malas estimaciones.
 
-```text
-TAG_SIZE = 0.24
-TAG_MIN_AREA = 180
+Estos parámetros me ayudaron a conseguir un comportamiento más estable.
 
-FWD_SPEED = 0.15
-TURN_SPEED = 0.35
-OBS_DIST = 0.55
+Por ejemplo:
 
-SEARCH_TURN_SPEED = 0.35
-LOOP_HZ = 15
-
-CORRECTION_ALPHA = 0.35
-MAX_VISUAL_JUMP = 1.50
-MAX_VISUAL_YAW_JUMP = 140 grados aproximadamente
-```
-
-Estos parámetros controlan cosas como:
-
-* El tamaño del AprilTag.
-* El área mínima para aceptar un marcador.
-* La velocidad del robot.
-* La distancia mínima a obstáculos.
-* La velocidad de giro para buscar tags.
-* La frecuencia del bucle.
-* La suavidad de la corrección visual.
-* El rechazo de saltos grandes.
+* Usé un tamaño conocido para el AprilTag.
+* Puse una velocidad lenta para que el robot no se moviera demasiado rápido.
+* Añadí límites para evitar saltos visuales grandes.
+* Añadí suavizado para que la estimación fuera menos brusca.
+* Usé una frecuencia de ejecución estable para actualizar la pose en tiempo real.
 
 ---
 
 # 📊 Resultados
 
-Las siguientes imágenes muestran el comportamiento del sistema de localización en diferentes momentos.
+Las siguientes imágenes muestran el comportamiento del sistema durante la localización.
 
-En las imágenes:
+En todas las imágenes, el objetivo es ver si la posición estimada se mantiene cerca de la posición real.
 
-* El robot verde representa la posición real.
-* El robot rojo representa la posición estimada por mi sistema.
-* El objetivo es que el robot rojo esté lo más cerca posible del robot verde.
+También se puede ver que el robot detecta los AprilTags en la imagen de la cámara, porque aparecen marcados con un rectángulo verde.
 
 ---
 
-## ✅ Resultado 1 — Detección inicial
+## ✅ Resultado 1 — Primera detección de AprilTags
 
-Al principio, el robot detecta un AprilTag y empieza a calcular su posición.
+En este primer resultado, el robot empieza viendo varios AprilTags en la pared.
 
-En esta parte comprobé que la detección inicial funcionaba correctamente.
+En la cámara se pueden ver dos marcadores. Esto es bueno porque el sistema tiene referencias visuales para calcular la posición.
 
-El robot rojo aparece cerca del robot verde, lo que significa que la estimación inicial es razonable.
+En el mapa de arriba a la izquierda, se ve que el robot estimado está cerca de la posición real.
 
-Puntos importantes:
+En esta fase comprobé que:
 
-* El AprilTag se detecta correctamente.
-* La pose inicial es estable.
-* El robot rojo está cerca del Ground Truth.
+* El detector encontraba los AprilTags correctamente.
+* Los marcadores aparecían marcados en verde.
+* La pose estimada empezaba cerca de la pose real.
+* El sistema podía inicializar la localización.
 
-![Result 1](img1_P3.png)
-
----
-
-## ✅ Resultado 2 — Actualización con visión
-
-En este resultado, el robot se acerca al marcador y actualiza su pose usando la cámara.
-
-Aquí la visión ayuda a corregir el error de la odometría.
-
-Esto es importante porque la odometría sola puede desviarse poco a poco.
-
-Puntos importantes:
-
-* La estimación PnP funciona correctamente.
-* La corrección visual reduce el error.
-* La pose estimada sigue el movimiento del robot.
-
-![Result 2](img2_P3.png)
+![Resultado 1](img1_P3.png)
 
 ---
 
-## ✅ Resultado 3 — Localización continua
+## ✅ Resultado 2 — El robot se acerca al marcador
 
-En este resultado, el sistema sigue actualizando la pose mientras el robot se mueve.
+En este resultado, el robot se acerca mucho a un AprilTag.
 
-El robot rojo continúa siguiendo al robot verde.
+El marcador aparece más grande en la cámara. Esto normalmente ayuda porque, cuando el tag se ve más grande, la estimación puede ser más fiable.
 
-Esto muestra que el sistema no funciona solo al principio, sino durante el movimiento.
+En el mapa, se ve una línea roja que indica la trayectoria estimada.
 
-Puntos importantes:
+Aquí yo comprobé que:
 
-* La trayectoria roja sigue la trayectoria real.
-* El seguimiento es estable durante varios frames.
-* La visión se combina con la odometría.
+* El robot seguía detectando el tag.
+* La estimación visual se actualizaba.
+* El robot rojo seguía cerca del robot real.
+* El sistema funcionaba bien cuando el marcador estaba cerca.
 
-![Result 3](img3_P3.png)
-
----
-
-## ✅ Resultado 4 — Seguimiento en trayectoria larga
-
-Aquí el robot sigue navegando durante más tiempo.
-
-La localización se mantiene estable aunque el robot se mueva bastante.
-
-También es importante que, si el robot pierde temporalmente un AprilTag, la odometría ayuda a continuar la estimación.
-
-Puntos importantes:
-
-* La pose estimada sigue siendo estable.
-* El robot mantiene una localización coherente.
-* La odometría evita que la estimación se quede parada.
-
-![Result 4](img4_P3.png)
+![Resultado 2](img2_P3.png)
 
 ---
 
-## ✅ Resultado 5 — Obstáculos y bordes
+## ✅ Resultado 3 — Movimiento y cambio de orientación
 
-En este resultado, el robot navega cerca de paredes, obstáculos o bordes del entorno.
+En este resultado, el robot ya se ha movido más por el entorno.
 
-Esto puede ser más difícil porque los AprilTags pueden verse parcialmente o desde ángulos peores.
+Se puede ver que el robot cambia su orientación y sigue navegando. En la cámara aparece un AprilTag más lejos y a un lado.
 
-Aun así, el sistema mantiene una estimación funcional.
+En el mapa, la trayectoria roja empieza a mostrar el camino que ha seguido el robot.
 
-Puntos importantes:
+Aquí observé que:
 
-* La pose sigue funcionando cerca de paredes.
-* La corrección visual estabiliza la trayectoria.
-* El sistema puede trabajar aunque el marcador no se vea perfectamente.
+* El robot podía seguir localizándose mientras se movía.
+* La odometría ayudaba durante el movimiento.
+* La visión corregía la estimación cuando veía un marcador.
+* La trayectoria estimada tenía sentido dentro del mapa.
 
-![Result 5](img5_P3.png)
-
+![Resultado 3](img3_P3.png)
 
 ---
 
+## ✅ Resultado 4 — Trayectoria más larga
+
+En este resultado, el robot ha recorrido una zona más larga del mapa.
+
+La línea roja muestra que la estimación ha ido siguiendo el movimiento del robot durante más tiempo.
+
+En la cámara todavía se detecta un AprilTag en la pared, y eso permite corregir la pose.
+
+Aquí comprobé que:
+
+* El sistema no funcionaba solo al principio, sino durante una trayectoria más larga.
+* El robot rojo seguía una trayectoria parecida a la real.
+* Las correcciones visuales ayudaban a mantener la estimación estable.
+* El robot podía seguir navegando mientras miraba los tags.
+
+![Resultado 4](img4_P3.png)
+
+---
+
+## ✅ Resultado 5 — Navegación cerca de paredes y obstáculos
+
+En este último resultado, el robot está cerca de una zona con paredes y obstáculos.
+
+Esto es más difícil porque los tags pueden verse más pequeños, más laterales o parcialmente.
+
+Aun así, el sistema sigue detectando un AprilTag y mantiene una estimación razonable.
+
+En el mapa se ve que la trayectoria roja continúa y que el robot estimado sigue moviéndose de forma coherente.
+
+Aquí observé que:
+
+* El sistema podía trabajar cerca de obstáculos.
+* El robot seguía detectando marcadores en la pared.
+* La trayectoria estimada seguía siendo coherente.
+* La combinación de visión y odometría ayudaba a no perder completamente la localización.
+
+![Resultado 5](img5_P3.png)
+
+---
+
+
+
+---
 
 # 📈 Observaciones finales
 
 Durante la práctica observé varias cosas importantes.
 
-Primero, vi que la detección de AprilTags era una parte fundamental. Si el marcador se detecta bien, la estimación mejora mucho.
+Primero, vi que la detección de AprilTags era la parte más importante. Si el robot detectaba bien el marcador, la estimación mejoraba mucho.
 
-También observé que la odometría sola no es suficiente, porque puede acumular error con el tiempo.
+También observé que cuando el robot se acercaba al tag, la detección era más clara porque el marcador aparecía más grande en la imagen.
 
-Por eso, la combinación de visión y odometría fue muy importante.
+En cambio, cuando el marcador estaba lejos o a un lado, la estimación podía ser menos estable.
 
-Cuando el robot ve un AprilTag, la visión corrige la posición.
-Cuando no ve un AprilTag, la odometría permite seguir estimando el movimiento.
+También vi que la odometría sola no era suficiente. La odometría ayuda, pero puede acumular error con el tiempo.
 
-También observé que el suavizado ayuda a evitar movimientos bruscos del robot rojo.
+Por eso, la combinación de odometría y visión fue muy importante.
 
-Los filtros de saltos visuales fueron importantes porque evitaron que una mala detección moviera la pose estimada a una posición incorrecta.
+La visión corregía la posición cuando aparecía un AprilTag.
+La odometría ayudaba cuando no había una detección clara.
+
+También observé que el suavizado hacía que el robot rojo se moviera mejor, sin saltos muy bruscos.
 
 En general, el sistema funcionó mejor cuando:
 
-* El AprilTag se veía bien.
-* El marcador tenía un área suficiente.
-* La pose PnP era válida.
-* La corrección visual no era demasiado brusca.
-* La odometría ayudaba cuando no había marcador visible.
+* El AprilTag se veía claramente.
+* El marcador no estaba demasiado lejos.
+* El robot se movía despacio.
+* La pose visual no daba saltos grandes.
+* La odometría ayudaba entre detecciones.
 
 ---
 
@@ -697,19 +557,19 @@ En esta práctica utilicé varias herramientas:
 
 Python fue el lenguaje principal.
 
-OpenCV me sirvió para trabajar con la imagen y la estimación geométrica.
+OpenCV me sirvió para trabajar con la imagen y la geometría.
 
 NumPy me ayudó con cálculos numéricos.
 
-PyYAML me permitió leer el archivo donde estaban las posiciones de los AprilTags.
+PyYAML me permitió leer las posiciones conocidas de los AprilTags.
 
 pyapriltags me sirvió para detectar los marcadores en la imagen.
 
 HAL API me permitió obtener datos del robot y moverlo.
 
-WebGUI me permitió mostrar la pose estimada.
+WebGUI me permitió mostrar la posición estimada.
 
-Frequency API me ayudó a controlar la frecuencia del bucle.
+Frequency API me ayudó a controlar el ritmo del programa.
 
 ---
 
@@ -718,69 +578,79 @@ Frequency API me ayudó a controlar la frecuencia del bucle.
 En resumen, en esta práctica hice lo siguiente:
 
 1. Primero entendí que el objetivo era localizar el robot usando AprilTags.
-2. Después cargué las posiciones conocidas de los marcadores.
-3. Luego obtuve la imagen de la cámara del robot.
-4. Después convertí la imagen para detectar mejor los tags.
-5. Luego usé `pyapriltags` para encontrar los AprilTags.
-6. Después comprobé si los tags detectados eran válidos.
-7. Luego usé PnP para estimar la posición del marcador respecto a la cámara.
-8. Después calculé la posición de la cámara en el mundo.
-9. Luego estimé la pose del robot.
-10. Después combiné esa pose visual con la odometría.
-11. También añadí suavizado para evitar saltos.
-12. Añadí filtros para rechazar malas detecciones.
-13. Añadí un comportamiento para buscar tags cuando no se ven.
-14. Añadí evitación básica de obstáculos.
-15. Finalmente mostré la pose estimada en WebGUI.
+2. Después usé la cámara del robot para obtener imágenes.
+3. Luego detecté los AprilTags en la imagen.
+4. Después comprobé si los tags detectados eran válidos.
+5. Luego calculé la pose del marcador respecto a la cámara.
+6. Después usé la posición conocida del marcador en el mapa.
+7. Luego calculé la pose estimada del robot.
+8. Después combiné esa pose visual con la odometría.
+9. Añadí filtros para rechazar detecciones malas.
+10. Añadí suavizado para evitar saltos bruscos.
+11. Programé un movimiento simple para buscar tags.
+12. Añadí evitación básica de obstáculos.
+13. Finalmente mostré el robot estimado en WebGUI.
+14. Comparé visualmente el robot rojo con el robot verde.
+15. Guardé capturas y video para mostrar los resultados.
 
 ---
 
 # ✅ Conclusiones
 
-En esta práctica conseguí implementar un sistema de localización visual basado en AprilTags.
+En esta práctica conseguí implementar un sistema de localización visual usando AprilTags.
 
-El robot pudo usar su cámara para detectar marcadores y calcular su posición en el entorno.
+El robot pudo usar su cámara para detectar marcadores en el entorno.
 
-Primero detecté los AprilTags en la imagen. Después usé la información del mapa para saber dónde estaban esos marcadores en el mundo.
+Después usé esos marcadores para calcular la posición del robot dentro del mapa.
 
-Luego calculé la posición del robot usando geometría y PnP.
+También combiné la visión con la odometría. Esto fue importante porque la visión no siempre está disponible. A veces el robot no ve bien un tag, y en esos momentos la odometría ayuda a continuar la estimación.
 
-También combiné la información visual con la odometría. Esto fue importante porque la visión no siempre está disponible. A veces el robot no ve ningún marcador, y en esos momentos la odometría permite continuar la estimación.
+Los resultados muestran que el robot rojo sigue de forma bastante coherente al robot verde.
 
-Además, añadí filtros, suavizado y rechazo de saltos para hacer la estimación más estable.
+La estimación no es perfecta, pero sí es estable y funciona durante el movimiento.
 
-El resultado final fue que el robot rojo pudo seguir bastante bien al robot verde durante la navegación.
-
-Esta práctica me ayudó a entender cómo un robot puede saber dónde está usando referencias visuales del entorno.
+Esta práctica me ayudó a entender cómo un robot puede usar señales visuales del entorno para saber dónde está.
 
 ---
 
 # 🧠 Explicación simple de todo el trabajo
 
-De forma muy sencilla, yo hice que el robot usara la cámara para buscar carteles especiales llamados AprilTags.
+De forma muy sencilla, yo hice que el robot buscara carteles especiales en la pared.
 
-Cada AprilTag tenía una posición conocida en el mapa.
+Esos carteles son los AprilTags.
 
-Cuando el robot veía uno, yo calculaba desde dónde lo estaba viendo.
+Cada cartel tiene una posición conocida en el mapa.
 
-Después usaba esa información para saber dónde estaba el robot.
+Cuando el robot ve un cartel, mi programa calcula desde dónde lo está mirando.
 
-También usé la odometría para que el robot no se perdiera cuando no veía ningún marcador.
+Después, con esa información, calcula dónde está el robot.
 
-Entonces, el sistema funcionaba así:
+También usé la odometría para que el robot no se perdiera cuando no veía bien los carteles.
+
+Entonces, el ciclo fue:
 
 ```text
-mirar con la cámara → encontrar AprilTag → calcular posición → corregir odometría → mostrar robot rojo
+mirar con la cámara → encontrar AprilTag → calcular posición → corregir con odometría → mostrar robot rojo
 ```
 
-La idea es como si el robot mirara una señal en la pared y pensara:
+La idea es como si el robot pensara:
 
-**“Sé dónde está esta señal, entonces puedo calcular dónde estoy yo.”**
+**“Veo esta señal. Sé dónde está esta señal. Entonces puedo saber dónde estoy yo.”**
 
-En resumen, yo hice un sistema que combina visión y movimiento para estimar la posición del robot de forma estable.
+En resumen, yo hice un sistema que combina visión, geometría y odometría para estimar la posición del robot de forma estable.
 
 # 🎥 Video de demostración
 
 En este video se puede ver el robot realizando la localización visual con AprilTags dentro del simulador.
 
-https://drive.google.com/file/d/1xq4trsp5EpbQUjDrnJGZAgLv41Gdn_-K/view?usp=sharing
+El robot usa la cámara para detectar los marcadores y después muestra la posición estimada en el mapa.
+
+Si el video está subido en GitHub, se puede poner así:
+
+```markdown
+👉 [Ver video de la práctica 3](P3_Video.mp4)
+```
+
+También dejo el enlace externo usado para la demostración:
+
+👉 [Ver video de la práctica 3](https://drive.google.com/file/d/1xq4trsp5EpbQUjDrnJGZAgLv41Gdn_-K/view?usp=sharing)
