@@ -1020,3 +1020,7 @@ En resumen, hice este ciclo:
 Y este ciclo se repite todo el tiempo mientras el robot conduce.
 
 Lo importante de esta práctica es que yo no escribí reglas manuales para cada curva. En vez de eso, entrené un modelo para que aprendiera a conducir usando ejemplos.
+
+## 🎥 Video de demostración
+
+https://drive.google.com/file/d/1u5KwVlA786fDR3145DbC-y8QguiN53BB/view?usp=sharing
