@@ -449,6 +449,7 @@ Y este ciclo se repite todo el tiempo mientras el robot sigue la línea.
 
 ## 🎥 Video de demostración
 
+https://drive.google.com/file/d/1loxOwxPvU7I2gdNzr7XrsiQ5a9pQnreX/view?usp=drive_link
 
 
 
