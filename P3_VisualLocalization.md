@@ -643,14 +643,5 @@ En resumen, yo hice un sistema que combina visión, geometría y odometría para
 
 En este video se puede ver el robot realizando la localización visual con AprilTags dentro del simulador.
 
-El robot usa la cámara para detectar los marcadores y después muestra la posición estimada en el mapa.
-
-Si el video está subido en GitHub, se puede poner así:
-
-```markdown
-👉 [Ver video de la práctica 3](P3_Video.mp4)
-```
-
-También dejo el enlace externo usado para la demostración:
 
 👉 [Ver video de la práctica 3](https://drive.google.com/file/d/1xq4trsp5EpbQUjDrnJGZAgLv41Gdn_-K/view?usp=sharing)
